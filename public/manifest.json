@@ -1,6 +1,6 @@
 {
-  "name": "Estudiar Catala",
-  "short_name": "Estudiar C",
+  "name": "Estudiar Catala CSI",
+  "short_name": "Catala CSI",
   "description": "Aprèn a corregir barbarismes comuns en català",
   "start_url": "/",
   "display": "standalone",
