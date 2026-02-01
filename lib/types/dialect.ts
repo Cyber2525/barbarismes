@@ -42,11 +42,9 @@ export interface DialectQuestion {
   isPronunciation?: boolean;
 }
 
-// Quiz mode types
 export type DialectQuizMode = 'single' | 'multiple';
 export type DialectQuizType = 'bloc' | 'dialect';
 
-// Additional types for dialect study mode
 export type DialectSortOption = 'alphabetical' | 'group' | 'region' | 'random';
 
 export interface DialectStudyState {

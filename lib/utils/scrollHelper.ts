@@ -3,6 +3,8 @@
  * Works in all browsers, even those that don't support behavior: 'smooth'
  */
 export function scrollToTop(duration = 500) {
+  if (typeof window === 'undefined') return;
+  
   // Use native smooth scrolling if available
   if ('scrollBehavior' in document.documentElement.style) {
     window.scrollTo({

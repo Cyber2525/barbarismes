@@ -1,4 +1,4 @@
-import { DialectItem, DialectGroup } from '../types/dialect';
+import { DialectItem, DialectGroup } from '@/lib/types/dialect';
 
 export const dialectGroups: DialectGroup[] = [
   {

@@ -1,4 +1,4 @@
-import { QuizItem } from '../types/quiz';
+import { QuizItem } from '@/lib/types/quiz';
 
 export const quizData: QuizItem[] = [
   // A
