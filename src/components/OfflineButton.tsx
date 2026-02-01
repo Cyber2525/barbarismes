@@ -767,9 +767,6 @@ export function OfflineButton() {
               ) : (
                 /* Desktop countdown - simplified with just a message */
                 <div className="text-center my-4">
-                  <p className="text-sm font-medium text-red-800 mb-4">
-                    Espera {countdownValue} segons per confirmar que vols desinstal·lar el mode offline
-                  </p>
                 </div>
               )}
             </div>
