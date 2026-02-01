@@ -398,8 +398,8 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
                 circleClass = 'bg-green-600 border-green-600 text-white';
                 icon = quizMode === 'single' ? <ChevronRight size={14} /> : <Check size={14} />;
               } else if (isCorrectOption && !isSelected) {
-                // Correct but not selected: green circle, no icon
-                circleClass = 'bg-green-600 border-green-600 text-white';
+                // Correct but not selected: only border, no filled circle, no icon
+                circleClass = 'border-green-600 text-green-600';
                 icon = null;
               } else if (!isCorrectOption && isSelected) {
                 // Incorrect and selected: red circle with X
@@ -440,8 +440,8 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
                   <p className={`font-medium ${isCorrect ? 'text-green-700' : 'text-red-700'}`}>
                     {isCorrect ? 'Correcte!' : 'Incorrecte'}
                   </p>
-                  {/* Only show explanation text if correct, or if incorrect in single mode */}
-                  {(isCorrect || !question.multipleCorrect) && (
+                  {/* Show explanation only in single mode or when incorrect */}
+                  {(!question.multipleCorrect || !isCorrect) && (
                     <p className="text-gray-700 text-sm mt-1">{questions[currentIndex].explanation}</p>
                   )}
                   {/* In multiple mode when incorrect, show generic message without revealing answers */}
