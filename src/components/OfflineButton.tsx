@@ -206,15 +206,18 @@ export function OfflineButton() {
     
     console.log('[v0] Offline check:', { offlineModeEnabled, hasController, isOffline });
     
-    // If we have a controller, that means the page was served by the service worker
-    // This is a strong indicator that we're installed, especially when offline
-    if (hasController && offlineModeEnabled) {
-      console.log('[v0] Service worker is controlling this page - setting installed to true');
-      setIsInstalled(true); // Immediately set to true if SW is controlling the page
-    } else {
-      setIsInstalled(false); // Not installed yet
+    // IMPORTANT: If localStorage says we're installed, trust it and don't set to false
+    // This prevents flickering when reloading offline from cache
+    if (offlineModeEnabled) {
+      // Already installed according to localStorage - keep it true
+      console.log('[v0] App is marked as installed in localStorage');
+      setIsInstalled(true);
+    } else if (!hasController) {
+      // Not in localStorage and no controller - definitely not installed
+      setIsInstalled(false);
     }
     
+    // Verify with service worker for additional confirmation
     if (offlineModeEnabled && 'serviceWorker' in navigator) {
       navigator.serviceWorker.ready
         .then(() => {
@@ -227,14 +230,17 @@ export function OfflineButton() {
               type: 'CHECK_CACHE_STATUS'
             });
           } else {
-            console.log('[v0] No active service worker controller found');
-            setIsInstalled(false);
+            console.log('[v0] No active service worker controller found - this might indicate an issue');
+            // Don't set to false here if localStorage says installed - might just be timing
           }
         })
         .catch((error) => {
           // If service worker is not ready despite offlineModeEnabled flag
           console.error('[v0] Service worker ready check failed:', error);
-          setIsInstalled(false);
+          // Only set to false if we're not offline - if offline, we can't verify anyway
+          if (navigator.onLine) {
+            setIsInstalled(false);
+          }
         });
     }
   };
