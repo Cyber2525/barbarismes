@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowRight, Check, CircleAlert, Download, RefreshCw, Trash2, Wifi, WifiOff, X } from 'lucide-react';
+import { ArrowRight, Check, CircleAlert, Download, RefreshCw, Timer, Trash2, Wifi, WifiOff, X } from 'lucide-react';
 import { SwipeToConfirm } from './SwipeToConfirm';
 
 export function OfflineButton() {
@@ -11,7 +11,11 @@ export function OfflineButton() {
   const [showUninstallConfirm, setShowUninstallConfirm] = useState(false);
   const [swipeProgress, setSwipeProgress] = useState(0);
   const [swipeComplete, setSwipeComplete] = useState(false);
+  const [sliderPosition, setSliderPosition] = useState(0);
+  const [countdownValue, setCountdownValue] = useState(5);
+  const [isMobile, setIsMobile] = useState(false);
   const [updateAvailable, setUpdateAvailable] = useState(false);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
   
   // Monitor online/offline status with debounce to prevent flickering
   useEffect(() => {
@@ -577,6 +581,39 @@ export function OfflineButton() {
     };
   }, [updateAvailable, isInstalling, isOffline]);
   
+  // Handle countdown timer for desktop
+  useEffect(() => {
+    if (showUninstallConfirm && !isMobile) {
+      // Reset countdown when modal opens
+      setCountdownValue(5);
+      setSwipeComplete(false);
+      
+      // Start countdown
+      countdownRef.current = setInterval(() => {
+        setCountdownValue(prev => {
+          if (prev <= 1) {
+            // When countdown reaches 0, unlock button
+            clearInterval(countdownRef.current as NodeJS.Timeout);
+            setSwipeComplete(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      // Clear countdown when modal closes
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+    }
+    
+    return () => {
+      if (countdownRef.current) {
+        clearInterval(countdownRef.current);
+      }
+    };
+  }, [showUninstallConfirm, isMobile]);
+
   // Control body scroll locking when modal opens/closes
   useEffect(() => {
     if (showUninstallConfirm) {
@@ -705,28 +742,36 @@ export function OfflineButton() {
                 <p className="text-sm">Aquesta acció eliminarà el mode offline i no podràs utilitzar l'aplicació sense connexió a internet.</p>
               </div>
               
-              {/* Interactive slider for both mobile and desktop */}
-              <p className="text-sm font-medium text-red-800 mb-3">
-                {isMobile 
-                  ? "Llisca fins al final per confirmar que vols desinstal·lar el mode offline"
-                  : "Arrossega el control fins al final per confirmar la desinstal·lació"
-                }
-              </p>
-              
-              {/* Swipe/Slide to confirm component */}
-              <div className="relative h-12 bg-gray-100 rounded-lg mt-3 overflow-hidden">
-                {!swipeComplete ? (
-                  <SwipeToConfirm 
-                    onSwipeProgress={setSwipeProgress} 
-                    onSwipeComplete={handleSwipeComplete}
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-red-500 text-white">
-                    <Check size={20} className="mr-2" />
-                    <span className="font-medium">Confirmat</span>
+              {isMobile ? (
+                <>
+                  <p className="text-sm font-medium text-red-800 mb-3">
+                    Llisca fins al final per confirmar que vols desinstal·lar el mode offline
+                  </p>
+                  
+                  {/* Swipe to confirm component (mobile only) */}
+                  <div className="relative h-12 bg-gray-100 rounded-lg mt-3 overflow-hidden">
+                    {/* Swipeable element */}
+                    {!swipeComplete ? (
+                      <SwipeToConfirm 
+                        onSwipeProgress={setSwipeProgress} 
+                        onSwipeComplete={handleSwipeComplete}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center bg-red-500 text-white">
+                        <Check size={20} className="mr-2" />
+                        <span className="font-medium">Confirmat</span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              ) : (
+                /* Desktop countdown - simplified with just a message */
+                <div className="text-center my-4">
+                  <p className="text-sm font-medium text-red-800 mb-4">
+                    Espera {countdownValue} segons per confirmar que vols desinstal·lar el mode offline
+                  </p>
+                </div>
+              )}
             </div>
             
             <div className="flex gap-3 justify-between">
@@ -745,8 +790,17 @@ export function OfflineButton() {
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                <Trash2 size={16} />
-                <span>Confirmar</span>
+                {!isMobile && !swipeComplete ? (
+                  <>
+                    <Timer size={16} className="animate-pulse" />
+                    <span>Espera ({countdownValue}s)</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    <span>{isMobile ? "Confirmar" : "Confirmar"}</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

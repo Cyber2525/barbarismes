@@ -14,15 +14,11 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Configuración laxa para permitir deploy en Vercel */
-    "strict": false,
-    "noImplicitAny": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true,
-    
-    /* Solución error NodeJS */
-    "types": ["node"]
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
   },
   "include": ["src", "plugins"]
 }
