@@ -3,170 +3,500 @@ import { ArrowRight, Check, CircleAlert, Download, RefreshCw, Timer, Trash2, Wif
 import { SwipeToConfirm } from './SwipeToConfirm';
 
 export function OfflineButton() {
-  // Installation state
-  const [isInstalled, setIsInstalled] = useState(() => 
-    localStorage.getItem('offlineModeEnabled') === 'true'
-  );
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isInstalling, setIsInstalling] = useState(false);
   const [installationError, setInstallationError] = useState<string | null>(null);
   const [cachingProgress, setCachingProgress] = useState(0);
-  
-  // Network state
-  const [isOffline, setIsOffline] = useState(!navigator.onLine);
-  
-  // Uninstall UI state
   const [showUninstallConfirm, setShowUninstallConfirm] = useState(false);
+  const [swipeProgress, setSwipeProgress] = useState(0);
   const [swipeComplete, setSwipeComplete] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  
-  // Refs for cleanup
+  const [sliderPosition, setSliderPosition] = useState(0);
+  const [countdownValue, setCountdownValue] = useState(5);
+  const [isMobile, setIsMobile] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Monitor network connectivity
+  // Monitor online/offline status with debounce to prevent flickering
   useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => {
-      setIsOffline(true);
-      if (isInstalling) {
-        handleInstallationFailure("Connexió perduda. La instal·lació s'ha cancel·lat.");
+    let networkStatusTimeout: NodeJS.Timeout | null = null;
+    
+    const handleOnlineStatus = () => {
+      // Clear any existing timeout to prevent rapid state changes
+      if (networkStatusTimeout) {
+        clearTimeout(networkStatusTimeout);
+      }
+      
+      // Debounce network status changes to prevent UI flickering
+      networkStatusTimeout = setTimeout(() => {
+        const isCurrentlyOffline = !navigator.onLine;
+        setIsOffline(isCurrentlyOffline);
+        
+        // Notify service worker about connectivity status
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'CONNECTIVITY_CHANGE',
+            offlineMode: isCurrentlyOffline
+          });
+        }
+        
+        // If we go offline during installation, abort the process
+        if (isCurrentlyOffline && isInstalling) {
+          handleInstallationFailure("Connexió perduda. La instal·lació s'ha cancel·lat.");
+        }
+      }, 300);
+    };
+    
+    // Check initial status
+    setIsOffline(!navigator.onLine);
+    
+    // Listen for app updates needed
+    const handleUpdateNeeded = (event: CustomEvent) => {
+      console.log('Update needed event received:', event.detail);
+      if (!isInstalling) {
+        setUpdateAvailable(true);
+        
+        // Log the reason for the update requirement
+        if (event.detail.reason) {
+          console.log('Update reason:', event.detail.reason);
+          
+          // If there are missing files, log them
+          if (event.detail.missingFiles && event.detail.missingFiles.length > 0) {
+            console.log('Missing critical files:', event.detail.missingFiles);
+          }
+          
+          // If there's a cache integrity issue
+          if (event.detail.cacheIntegrity === 'invalid') {
+            console.log('Cache integrity check failed');
+          }
+        }
       }
     };
     
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOnlineStatus);
+    window.addEventListener('app-update-needed', handleUpdateNeeded as EventListener);
     
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      if (networkStatusTimeout) {
+        clearTimeout(networkStatusTimeout);
+      }
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOnlineStatus);
+      window.removeEventListener('app-update-needed', handleUpdateNeeded as EventListener);
     };
   }, [isInstalling]);
   
-  // Verify installation status and listen for changes
+  // Check if app is already installed/cached on component mount
   useEffect(() => {
-    // Check if app is installed
-    if (localStorage.getItem('offlineModeEnabled') === 'true' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(() => {
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: 'CHECK_CACHE_STATUS' });
+    checkOfflineStatus();
+    
+    // Listen for service worker messages with minimal throttling for smooth updates
+    let lastProgressUpdate = 0;
+    const PROGRESS_UPDATE_THROTTLE = 50; // ms between updates (0.05s)
+    let lastProgressValue = 0; // Track last progress value to ensure all steps are shown
+    let stateChangeTimeout: NodeJS.Timeout | null = null; // Debounce state changes
+    
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (!event.data) return;
+      
+      console.log('Received message from Service Worker:', event.data);
+      
+      if (event.data.type === 'OFFLINE_READY' || event.data.type === 'CACHE_ALL_COMPLETE') {
+        // Debounce the installed state change to avoid flickering
+        if (stateChangeTimeout) clearTimeout(stateChangeTimeout);
+        stateChangeTimeout = setTimeout(() => {
+          setIsInstalled(true);
+          setIsInstalling(false);
+          setUpdateAvailable(false);
+          localStorage.setItem('offlineModeEnabled', 'true');
+          setCachingProgress(100);
+          console.log('App installation confirmed and completed');
+        }, 100);
+        
+        // Remove updating toast if it exists
+        const updatingToast = document.getElementById('updating-toast');
+        if (updatingToast) {
+          document.body.removeChild(updatingToast);
         }
-      });
-    }
-    
-    // Listen for installation events
-    const handleInstallComplete = () => {
-      setIsInstalled(true);
-      setIsInstalling(false);
-      setCachingProgress(100);
+        
+        // If this was an auto update, just reset state
+        if (event.data.isAutoUpdate) {
+          // Reset installation/update state
+          setIsInstalling(false);
+        }
+      } else if (event.data.type === 'CACHE_STATUS') {
+        // Only update installed state if cache has significant content
+        const hasCache = event.data.exists && event.data.itemCount > 5;
+        if (hasCache) {
+          setIsInstalled(true);
+        } else {
+          setIsInstalled(false);
+        }
+        console.log('Cache status confirmed:', { exists: event.data.exists, itemCount: event.data.itemCount });
+      } else if (event.data.type === 'CACHE_ALL_FAILED') {
+        handleInstallationFailure(event.data.error || 'Unknown error');
+      } else if (event.data.type === 'CACHING_PROGRESS') {
+        // Minimal throttling for smooth updates
+        const now = Date.now();
+        const progressValue = Math.floor(event.data.progress);
+        
+        // Always update if:
+        // 1. Sufficient time has passed since last update
+        // 2. We're approaching completion
+        // 3. The progress value has increased by at least 5 since last update
+        // 4. We've reached a new progress "step" (like 55, 60, 65)
+        if (now - lastProgressUpdate > PROGRESS_UPDATE_THROTTLE || 
+            event.data.progress >= 99 || 
+            (progressValue - lastProgressValue >= 5) ||
+            ([55, 60, 65, 70, 75, 80, 85, 90, 95].includes(progressValue) && progressValue > lastProgressValue)) {
+          
+          lastProgressUpdate = now;
+          lastProgressValue = progressValue;
+          
+          // Update progress state with actual percentage
+          setCachingProgress(progressValue);
+          
+          console.log(`UI Progress updated: ${progressValue}%`);
+          
+          // If an update is in progress but isInstalling isn't set, set it now
+          if (event.data.isAutoUpdate && !isInstalling) {
+            setIsInstalling(true);
+            setUpdateAvailable(true);
+          }
+        }
+      } else if (event.data.type === 'VERSION_INFO') {
+        // Version info received - check if update needed
+        const newVersion = event.data.version;
+        const storedVersion = localStorage.getItem('appVersion');
+        
+        console.log(`Version check in component: Current=${newVersion}, Stored=${storedVersion}`);
+        
+        if (storedVersion && storedVersion !== newVersion) {
+          setUpdateAvailable(true);
+        }
+      } else if (event.data.type === 'UPDATE_LABEL_SET') {
+        // Update label received from service worker
+        console.log('Update label received:', event.data.label);
+        // Here we could store the label if needed for UI customization
+      }
     };
     
-    const handleInstallError = (e: Event) => {
-      const event = e as CustomEvent;
-      handleInstallationFailure(event.detail?.error || 'Installation failed');
-    };
-    
-    const handleCacheProgress = (e: Event) => {
-      const event = e as CustomEvent;
-      setCachingProgress(Math.floor(event.detail?.progress || 0));
-    };
-    
-    const handleCacheStatus = (e: Event) => {
-      const event = e as CustomEvent;
-      const hasCache = event.detail?.exists && event.detail?.itemCount > 5;
-      setIsInstalled(hasCache);
-    };
-    
-    window.addEventListener('installation-complete', handleInstallComplete);
-    window.addEventListener('installation-error', handleInstallError);
-    window.addEventListener('cache-progress', handleCacheProgress);
-    window.addEventListener('cache-status-check', handleCacheStatus);
+    navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
     
     return () => {
-      window.removeEventListener('installation-complete', handleInstallComplete);
-      window.removeEventListener('installation-error', handleInstallError);
-      window.removeEventListener('cache-progress', handleCacheProgress);
-      window.removeEventListener('cache-status-check', handleCacheStatus);
+      if (stateChangeTimeout) clearTimeout(stateChangeTimeout);
+      navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
     };
-  }, []);
+  }, [cachingProgress]);
   
-
+  const checkOfflineStatus = () => {
+    // Check if we previously enabled offline mode
+    const offlineModeEnabled = localStorage.getItem('offlineModeEnabled') === 'true';
+    
+    if (offlineModeEnabled && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.ready
+        .then(() => {
+          console.log('Service worker is ready, checking cache status');
+          
+          // Don't assume installed, wait for the service worker to confirm
+          setIsInstalled(false); // Start as not installed until confirmed
+          
+          // Check with the service worker about cache status
+          if (navigator.serviceWorker.controller) {
+            console.log('Sending CHECK_CACHE_STATUS message to service worker');
+            navigator.serviceWorker.controller.postMessage({
+              type: 'CHECK_CACHE_STATUS'
+            });
+          } else {
+            console.log('No active service worker controller found');
+            setIsInstalled(false);
+          }
+        })
+        .catch((error) => {
+          // If service worker is not ready despite offlineModeEnabled flag
+          console.error('Service worker ready check failed:', error);
+          setIsInstalled(false);
+        });
+    } else {
+      setIsInstalled(false);
+    }
+  };
   
-  const installServiceWorker = async () => {
-    if (isOffline || isInstalling || !navigator.onLine) return;
+  const installServiceWorker = () => {
+    // Don't proceed if offline or already installing
+    if (isOffline || isInstalling) {
+      return;
+    }
+    
+    const isUpdating = updateAvailable;
     
     if (!('serviceWorker' in navigator)) {
-      handleInstallationFailure('El teu navegador no suporta el mode offline');
+      alert('El teu navegador no suporta el mode offline. Prova amb Chrome, Firefox, o Edge.');
       return;
     }
     
     setIsInstalling(true);
     setInstallationError(null);
-    setCachingProgress(0);
+    setCachingProgress(0); // Start at 0% for real progress tracking // Start at 0% for real progress tracking
     
-    try {
-      // Register service worker
-      const registration = await navigator.serviceWorker.register('/serviceWorker.js', {
-        scope: '/',
-        updateViaCache: 'none'
-      });
-      
-      // Wait for activation
-      if (registration.installing) {
-        await new Promise<void>((resolve) => {
-          const sw = registration.installing!;
-          sw.addEventListener('statechange', () => {
-            if (sw.state === 'activated') resolve();
-          });
-        });
-      }
-      
-      // Tell SW to cache all resources
-      if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({ type: 'CACHE_ALL' });
-      }
-      
-      // Set timeout for installation completion
-      setTimeout(() => {
-        if (isInstalling) {
-          handleInstallationFailure('La instal·lació ha excedit el temps d\'espera');
-        }
-      }, 60000);
-      
-    } catch (error) {
-      handleInstallationFailure(error instanceof Error ? error.message : 'Installation failed');
+    console.log('Registering service worker...');
+    
+    // Check connection before starting
+    if (!navigator.onLine) {
+      console.error('Network connection unavailable');
+      handleInstallationFailure('Revisa la connexió a internet i torna-ho a probar');
+      return;
     }
+    
+    // Create a timeout to prevent hanging installation
+    const installTimeout = setTimeout(() => {
+      if (isInstalling) {
+        handleInstallationFailure('La instal·lació ha excedit el temps d\'espera');
+      }
+    }, 45000); // 45 second timeout for larger downloads
+    
+    // Register the service worker if not already registered
+    navigator.serviceWorker.register('/serviceWorker.js', { 
+      scope: '/',
+      updateViaCache: 'none'  // Don't use cached version of service worker
+    })
+      .then((registration) => {
+        console.log('Service Worker registered with scope:', registration.scope);
+        // Don't set a hardcoded progress here, let the service worker report actual progress
+        
+        // Ensure the service worker is activated
+        if (registration.installing) {
+          console.log('Service worker is installing');
+          const sw = registration.installing || registration.waiting;
+          
+          // Monitor the state changes of the service worker
+          sw.addEventListener('statechange', (e) => {
+            console.log('Service worker state changed:', sw.state);
+            if (sw.state === 'activated') {
+              // Now we can tell the service worker to cache all resources
+              clearTimeout(installTimeout); // Clear timeout as we're proceeding
+              
+              // Double-check we're still online before proceeding
+              if (!navigator.onLine) {
+                handleInstallationFailure('Revisa la connexió a internet i torna-ho a probar');
+                return;
+              }
+              
+              activateOfflineMode(registration);
+            }
+          });
+        } else if (registration.active) {
+          console.log('Service worker is already active');
+          clearTimeout(installTimeout); // Clear timeout as we're proceeding
+          activateOfflineMode(registration);
+        }
+      })
+      .catch((error) => {
+        console.error('Service Worker registration failed:', error);
+        clearTimeout(installTimeout);
+        handleInstallationFailure(error.message);
+      });
   };
   
+  // Centralized function to handle installation failures
   const handleInstallationFailure = (errorMessage: string) => {
+    console.error('Installation failed:', errorMessage);
+    
+    // Reset all installation states
     setIsInstalling(false);
     setCachingProgress(0);
-    setInstallationError(errorMessage || 'Installation failed');
+    setUpdateAvailable(false); // Reset update state on failure
+    
+    // Set standardized error message for network issues, otherwise use original error
+    if (errorMessage.includes('connexió') || errorMessage.includes('network')) {
+      setInstallationError("Revisa la connexió a internet i torna-ho a probar");
+    } else {
+      setInstallationError(errorMessage || 'Error desconegut durant la instal·lació');
+    }
+    
+    // Note: No alert() calls - using in-app error messages only
   };
   
-  const uninstallOfflineMode = async () => {
-    if (!swipeComplete) return;
+  const activateOfflineMode = (registration: ServiceWorkerRegistration) => {
+    console.log('Activating offline mode...');
+    setCachingProgress(0); // Start at 0% for real progress tracking
     
+    // Make sure the service worker takes control immediately
+    if (registration.active && !navigator.serviceWorker.controller) {
+      // If there's no controller, we need to reload to get the SW to control the page
+      console.log('No controller, reloading page to activate service worker');
+      window.location.reload();
+      return;
+    }
+    
+    // Signal the service worker to cache all resources
+    setTimeout(() => {
+      // Check if we're still online before proceeding
+      if (!navigator.onLine) {
+        handleInstallationFailure('Revisa la connexió a internet i torna-ho a probar');
+        return;
+      }
+      
+      if (navigator.serviceWorker.controller) {
+        console.log('Sending CACHE_ALL message to service worker');
+        
+        // Cache all app content
+        navigator.serviceWorker.controller.postMessage({
+          type: 'CACHE_ALL'
+        });
+        
+        // Store user preferences and data in localStorage
+        cacheLocalData();
+        
+        // Log whether this is an update or fresh install
+        console.log(updateAvailable ? 'Starting app update...' : 'Starting fresh installation...');
+        
+        // Set a timeout to ensure we eventually move to "installed" state
+        // even if we don't get a message back
+        const maxWaitTime = 30000; // 30 seconds max wait time
+        
+        // Setup network monitoring during installation
+        const connectionCheckInterval = setInterval(() => {
+          if (!navigator.onLine && isInstalling) {
+            clearInterval(connectionCheckInterval);
+            handleInstallationFailure('Revisa la connexió a internet i torna-ho a probar');
+          }
+        }, 1000);
+        
+        // Monitor network connectivity during installation
+        setTimeout(() => {
+          clearInterval(connectionCheckInterval);
+          
+          if (!isInstalled && isInstalling) {
+            // Check if we're still online
+            if (!navigator.onLine) {
+              handleInstallationFailure('Problema de xarxa, torna-ho a intentar');
+              return;
+            }
+            
+            // Mark as complete - we'll let the service worker handle the actual final percentage
+            console.log('Cache timeout reached, considering installation complete');
+            setIsInstalled(true);
+            setIsInstalling(false);
+            setUpdateAvailable(false);
+            setCachingProgress(100);
+            localStorage.setItem('offlineModeEnabled', 'true');
+          }
+        }, maxWaitTime);
+      } else {
+        // No toast notifications to handle
+                  
+                  handleInstallationFailure('No s\'ha pogut activar el service worker. Recarrega la pàgina i torna-ho a provar.');
+      }
+    }, 1000);
+  };
+  
+  const cacheLocalData = () => {
+    // Store configuration and user data in localStorage
+    localStorage.setItem('offlineModeEnabled', 'true');
+    
+    // We're already using localStorage for quiz state, scores and settings
+    // so user data is already persisted
+    
+    // Explicitly save the current app state
+    const currentQuizSize = localStorage.getItem('quizSize');
+    const currentQuizMode = localStorage.getItem('quizMode');
+    
+    if (currentQuizSize) {
+      localStorage.setItem('quizSize_backup', currentQuizSize);
+    }
+    
+    if (currentQuizMode) {
+      localStorage.setItem('quizMode_backup', currentQuizMode);
+    }
+    
+    console.log('Local data cached successfully');
+  };
+  
+  const uninstallOfflineMode = () => {
+    // Only proceed if swipe is complete
+    if (!swipeComplete) {
+      return;
+    }
+    
+    console.log('Uninstalling offline mode...');
     setShowUninstallConfirm(false);
+    
+    // Reset swipe state so it's ready if the dialog is reopened
     resetSwipeState();
     
-    try {
-      // Unregister all service workers
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registrations.map(r => r.unregister()));
-      }
+    // No toast notification for uninstalling
+    
+    // Create a promise chain for all uninstallation tasks
+    Promise.all([
+      // 1. Unregister service workers
+      new Promise((resolve) => {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations()
+            .then(registrations => {
+              return Promise.all(
+                registrations.map(registration => registration.unregister())
+              );
+            })
+            .then(() => {
+              console.log('All service workers unregistered');
+              resolve(true);
+            })
+            .catch(error => {
+              console.error('Error unregistering service workers:', error);
+              resolve(false);
+            });
+        } else {
+          resolve(true);
+        }
+      }),
       
-      // Clear all caches
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
-      }
-      
-      // Remove offline flag
+      // 2. Clear all caches
+      new Promise((resolve) => {
+        if ('caches' in window) {
+          caches.keys()
+            .then(cacheNames => {
+              return Promise.all(
+                cacheNames.map(cacheName => {
+                  console.log('Deleting cache:', cacheName);
+                  return caches.delete(cacheName);
+                })
+              );
+            })
+            .then(() => {
+              console.log('All caches cleared');
+              resolve(true);
+            })
+            .catch(error => {
+              console.error('Error clearing caches:', error);
+              resolve(false);
+            });
+        } else {
+          resolve(true);
+        }
+      })
+    ])
+    .then(() => {
+      // Reset offline state in localStorage
       localStorage.removeItem('offlineModeEnabled');
+      
+      // Reset component state
       setIsInstalled(false);
-    } catch (error) {
-      console.error('Uninstall failed:', error);
-    }
+      
+      // Reset swipe state so it's ready if the dialog is reopened
+      resetSwipeState();
+      
+      console.log('Offline mode uninstalled successfully');
+    })
+    .catch((error) => {
+      console.error('Uninstallation error:', error);
+      
+      // Reset swipe state even in case of error
+      resetSwipeState();
+      
+      console.log('Uninstallation error:', error);
+    });
   };
   
   // Handle swipe to confirm
@@ -198,13 +528,75 @@ export function OfflineButton() {
     }, 200); // Match animation duration
   };
   
-  // Detect mobile device on mount and resize
+  // Detect mobile device
   useEffect(() => {
-    const updateMobile = () => setIsMobile(window.innerWidth < 768);
-    updateMobile();
-    window.addEventListener('resize', updateMobile);
-    return () => window.removeEventListener('resize', updateMobile);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Check initially
+    checkMobile();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Handle automatic updates
+  useEffect(() => {
+    const handleAutoUpdate = (event: Event) => {
+      console.log('Automatic update process started', event);
+      
+      // Check if we have event details with custom label
+      const customEvent = event as CustomEvent;
+      const updateLabel = customEvent.detail?.label || 'Actualitzant';
+      const updateTrigger = customEvent.detail?.trigger || 'auto';
+      
+      console.log(`Update process: ${updateLabel} (trigger: ${updateTrigger})`);
+      
+      if (!isOffline && !isInstalling) {
+        setIsInstalling(true);
+        setUpdateAvailable(true);
+        setCachingProgress(0); // Start at 0% for real progress tracking
+        console.log('UI updated to show automatic update progress');
+      }
+    };
+    
+    // Handler for update in progress events
+    const handleUpdateInProgress = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const inProgress = customEvent.detail?.inProgress || false;
+      
+      if (inProgress && !isOffline) {
+        console.log('Update in progress detected, updating UI state');
+        setIsInstalling(true);
+        setUpdateAvailable(true);
+      }
+    };
+    
+    window.addEventListener('auto-update-started', handleAutoUpdate);
+    window.addEventListener('app-update-in-progress', handleUpdateInProgress);
+    
+    // Still handle manual update button clicks
+    if (updateAvailable && !isInstalling && !isOffline) {
+      // Small delay before starting the update
+      const timer = setTimeout(() => {
+        console.log('Automatic update started');
+        installServiceWorker();
+      }, 1000);
+      
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('auto-update-started', handleAutoUpdate);
+      };
+    }
+    
+    return () => {
+      window.removeEventListener('auto-update-started', handleAutoUpdate);
+      window.removeEventListener('app-update-in-progress', handleUpdateInProgress);
+    };
+  }, [updateAvailable, isInstalling, isOffline]);
   
   // Handle countdown timer for desktop
   useEffect(() => {
