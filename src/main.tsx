@@ -69,6 +69,40 @@ if ('serviceWorker' in navigator) {
           console.log('[v0] Service worker controller changed');
         });
         
+        // Auto-update once per page load if online and installed
+        if (navigator.onLine && cacheExists) {
+          console.log('[v0] Online and installed - triggering auto-update on page load');
+          
+          // Wait for service worker to be ready and controller to be available
+          setTimeout(async () => {
+            try {
+              // Verify network connectivity with a HEAD request
+              await fetch('/', { method: 'HEAD', cache: 'no-store' });
+              console.log('[v0] Network connectivity confirmed for page load update');
+              
+              if (navigator.serviceWorker.controller) {
+                // Dispatch event for UI
+                window.dispatchEvent(new CustomEvent('auto-update-started', {
+                  detail: { trigger: 'page-load' }
+                }));
+                
+                // Start the update
+                navigator.serviceWorker.controller.postMessage({
+                  type: 'CACHE_ALL',
+                  isAutoUpdate: true,
+                  updateLabel: 'Actualitzant'
+                });
+                
+                console.log('[v0] Auto-update initiated on page load');
+              } else {
+                console.log('[v0] No service worker controller available for update');
+              }
+            } catch (err) {
+              console.log('[v0] Network test failed on page load, skipping update:', err);
+            }
+          }, 1500); // Delay to ensure SW is fully ready
+        }
+        
       } catch (error) {
         console.error('[v0] Service Worker registration failed:', error);
         // Don't clear flag on registration failure - cache might still be valid
