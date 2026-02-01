@@ -10,7 +10,7 @@ interface DialectQuizProps {
 export function DialectQuiz({ onBack }: DialectQuizProps) {
   const [quizStarted, setQuizStarted] = useState(false);
   const [quizMode, setQuizMode] = useState<DialectQuizMode>('single');
-  const [quizType, setQuizType] = useState<DialectQuizType>('bloc');
+  const [quizType, setQuizType] = useState<DialectQuizType>('dialect');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [questions, setQuestions] = useState<DialectQuestion[]>([]);
