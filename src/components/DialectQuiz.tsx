@@ -120,6 +120,48 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
           });
         }
       }
+      
+      // For multiple selection questions in bloc mode (identifying multiple traits)
+      // CHANGED: Now the question is the bloc and answers are 3 correct + 3 incorrect traits
+      if (questions.length < size) {
+        // Get traits from each bloc
+        const orientalTraits = dialectGroups[0].characteristics;
+        const occidentalTraits = dialectGroups[1].characteristics;
+        
+        // Generate questions for each bloc
+        const blocs = [
+          { name: 'oriental', traits: orientalTraits, otherTraits: occidentalTraits },
+          { name: 'occidental', traits: occidentalTraits, otherTraits: orientalTraits }
+        ];
+        
+        const shuffledBlocs = shuffleArray([...blocs]);
+        
+        for (let i = 0; i < shuffledBlocs.length && questions.length < size; i++) {
+          const bloc = shuffledBlocs[i];
+          
+          if (bloc.traits.length >= 3) {
+            // Select 3 correct traits from this bloc
+            const correctTraits = shuffleArray([...bloc.traits]).slice(0, 3);
+            
+            // Select 3 incorrect traits (from the other bloc)
+            const incorrectTraits = shuffleArray([...bloc.otherTraits]).slice(0, 3);
+            
+            // Combine and shuffle all 6 traits
+            const allTraits = shuffleArray([...correctTraits, ...incorrectTraits]);
+            
+            questions.push({
+              id: `bloc-multi-${i}`,
+              type: 'bloc',
+              prompt: `Selecciona les 3 característiques correctes del bloc dialectal:`,
+              content: bloc.name.charAt(0).toUpperCase() + bloc.name.slice(1),
+              options: allTraits,
+              correctAnswer: correctTraits,
+              multipleCorrect: true,
+              explanation: `Les característiques correctes del bloc ${bloc.name} són: ${correctTraits.join(', ')}.`
+            });
+          }
+        }
+      }
     } else {
       // Generate dialect-specific questions
       const allDialects = [...dialectItems];
@@ -173,6 +215,7 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
       }
       
       // For multiple selection questions (identifying multiple traits)
+      // CHANGED: Now the question is the dialect and answers are 3 correct + 3 incorrect traits
       if (questions.length < size) {
         const shuffledDialects2 = shuffleArray([...allDialects]);
         
@@ -180,57 +223,48 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
           const dialect = shuffledDialects2[i];
           
           if (dialect.characteristics.length >= 3) {
-            // Create a question where multiple traits belong to a dialect
+            // Select 3 correct traits from this dialect
             const correctTraits = shuffleArray([...dialect.characteristics]).slice(0, 3);
             
-            // Find some incorrect traits (from other dialects)
+            // Find 3 incorrect traits (from other dialects)
             const otherDialects = allDialects.filter(d => d.id !== dialect.id);
-            const incorrectTraits = otherDialects
-              .flatMap(d => d.characteristics)
-              .filter(c => !correctTraits.includes(c));
+            const incorrectTraits = shuffleArray(
+              otherDialects
+                .flatMap(d => d.characteristics)
+                .filter(c => !correctTraits.includes(c))
+            ).slice(0, 3);
             
-            // Combine correct and incorrect traits and shuffle
-            const allTraits = [...correctTraits, ...shuffleArray(incorrectTraits).slice(0, 3)];
-            const options = shuffleArray(allTraits);
+            // Combine and shuffle all 6 traits
+            const allTraits = shuffleArray([...correctTraits, ...incorrectTraits]);
             
             questions.push({
               id: `dialect-multi-${i}`,
               type: 'dialect',
-              prompt: `Quines característiques pertanyen al dialecte ${dialect.name}?`,
-              content: `Selecciona totes les característiques que pertanyen al dialecte ${dialect.name}.`,
-              options: options,
+              prompt: `Selecciona les 3 característiques correctes del dialecte:`,
+              content: dialect.name,
+              options: allTraits,
               correctAnswer: correctTraits,
               multipleCorrect: true,
-              explanation: `Aquestes característiques són pròpies del dialecte ${dialect.name}.`
+              explanation: `Les característiques correctes del ${dialect.name} són: ${correctTraits.join(', ')}.`
             });
           }
         }
       }
     }
     
-    // Ensure we have the requested number of questions (or less if not enough data)
-    const finalQuestions = shuffleArray(questions).slice(0, size);
+    // Filter questions based on quiz mode
+    let filteredQuestions = questions;
     
-    // Make some questions multi-select even if they're not naturally multi-answer
-    // This is only if quizMode is 'multiple' - we'll convert some single-answer questions
     if (quizMode === 'multiple') {
-      finalQuestions.forEach(q => {
-        // Only convert bloc questions or dialect identification questions
-        if (!q.multipleCorrect && Math.random() > 0.5) {
-          // Add additional correct answers for variety (only for certain question types)
-          if (q.type === 'bloc' && Array.isArray(q.options)) {
-            q.multipleCorrect = true;
-            
-            // For bloc questions, we sometimes want to allow both as correct
-            // (when a trait is shared between blocs)
-            if (Math.random() > 0.8) {
-              q.correctAnswer = q.options;
-              q.explanation = "Aquest tret és compartit pels dos blocs dialectals.";
-            }
-          }
-        }
-      });
+      // In multiple mode, only use questions with multipleCorrect = true
+      filteredQuestions = questions.filter(q => q.multipleCorrect === true);
+    } else {
+      // In single mode, only use questions with multipleCorrect = false
+      filteredQuestions = questions.filter(q => q.multipleCorrect === false);
     }
+    
+    // Ensure we have the requested number of questions (or less if not enough data)
+    const finalQuestions = shuffleArray(filteredQuestions).slice(0, size);
     
     return finalQuestions;
   };
@@ -333,6 +367,11 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
             )}
           {question.additionalInfo && (
             <p className="text-sm text-gray-500 mt-2 italic">{question.additionalInfo}</p>
+          )}
+          {question.multipleCorrect && (
+            <p className="text-sm text-blue-600 mt-2 font-medium">
+              Selecciona exactament 3 característiques correctes
+            </p>
           )}
         </div>
         
