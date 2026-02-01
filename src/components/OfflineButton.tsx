@@ -3,7 +3,12 @@ import { ArrowRight, Check, CircleAlert, Download, RefreshCw, Timer, Trash2, Wif
 import { SwipeToConfirm } from './SwipeToConfirm';
 
 export function OfflineButton() {
-  const [isInstalled, setIsInstalled] = useState(false);
+  // Check localStorage immediately on mount to set initial installed state
+  const [isInstalled, setIsInstalled] = useState(() => {
+    const offlineModeEnabled = localStorage.getItem('offlineModeEnabled') === 'true';
+    console.log('[v0] Initial isInstalled state:', offlineModeEnabled);
+    return offlineModeEnabled;
+  });
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isInstalling, setIsInstalling] = useState(false);
   const [installationError, setInstallationError] = useState<string | null>(null);
