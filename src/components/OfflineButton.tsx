@@ -95,7 +95,6 @@ export function OfflineButton() {
     let lastProgressUpdate = 0;
     const PROGRESS_UPDATE_THROTTLE = 50; // ms between updates (0.05s)
     let lastProgressValue = 0; // Track last progress value to ensure all steps are shown
-    let stateChangeTimeout: NodeJS.Timeout | null = null; // Debounce state changes
     
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (!event.data) return;
@@ -103,16 +102,11 @@ export function OfflineButton() {
       console.log('Received message from Service Worker:', event.data);
       
       if (event.data.type === 'OFFLINE_READY' || event.data.type === 'CACHE_ALL_COMPLETE') {
-        // Debounce the installed state change to avoid flickering
-        if (stateChangeTimeout) clearTimeout(stateChangeTimeout);
-        stateChangeTimeout = setTimeout(() => {
-          setIsInstalled(true);
-          setIsInstalling(false);
-          setUpdateAvailable(false);
-          localStorage.setItem('offlineModeEnabled', 'true');
-          setCachingProgress(100);
-          console.log('App installation confirmed and completed');
-        }, 100);
+        setIsInstalled(true);
+        setIsInstalling(false);
+        setUpdateAvailable(false);
+        localStorage.setItem('offlineModeEnabled', 'true');
+        setCachingProgress(100);
         
         // Remove updating toast if it exists
         const updatingToast = document.getElementById('updating-toast');
@@ -126,14 +120,7 @@ export function OfflineButton() {
           setIsInstalling(false);
         }
       } else if (event.data.type === 'CACHE_STATUS') {
-        // Only update installed state if cache has significant content
-        const hasCache = event.data.exists && event.data.itemCount > 5;
-        if (hasCache) {
-          setIsInstalled(true);
-        } else {
-          setIsInstalled(false);
-        }
-        console.log('Cache status confirmed:', { exists: event.data.exists, itemCount: event.data.itemCount });
+        setIsInstalled(event.data.exists && event.data.itemCount > 5);
       } else if (event.data.type === 'CACHE_ALL_FAILED') {
         handleInstallationFailure(event.data.error || 'Unknown error');
       } else if (event.data.type === 'CACHING_PROGRESS') {
@@ -185,7 +172,6 @@ export function OfflineButton() {
     navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
     
     return () => {
-      if (stateChangeTimeout) clearTimeout(stateChangeTimeout);
       navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
     };
   }, [cachingProgress]);
@@ -198,11 +184,9 @@ export function OfflineButton() {
       navigator.serviceWorker.ready
         .then(() => {
           console.log('Service worker is ready, checking cache status');
+          setIsInstalled(true);
           
-          // Don't assume installed, wait for the service worker to confirm
-          setIsInstalled(false); // Start as not installed until confirmed
-          
-          // Check with the service worker about cache status
+          // Double-check with the service worker about cache status
           if (navigator.serviceWorker.controller) {
             console.log('Sending CHECK_CACHE_STATUS message to service worker');
             navigator.serviceWorker.controller.postMessage({
@@ -210,7 +194,6 @@ export function OfflineButton() {
             });
           } else {
             console.log('No active service worker controller found');
-            setIsInstalled(false);
           }
         })
         .catch((error) => {
@@ -761,6 +744,10 @@ export function OfflineButton() {
               
               {isMobile ? (
                 <>
+                  <p className="text-sm font-medium text-red-800 mb-3">
+                    Llisca fins al final per confirmar que vols desinstal·lar el mode offline
+                  </p>
+                  
                   {/* Swipe to confirm component (mobile only) */}
                   <div className="relative h-12 bg-gray-100 rounded-lg mt-3 overflow-hidden">
                     {/* Swipeable element */}
@@ -780,6 +767,9 @@ export function OfflineButton() {
               ) : (
                 /* Desktop countdown - simplified with just a message */
                 <div className="text-center my-4">
+                  <p className="text-sm font-medium text-red-800 mb-4">
+                    Espera {countdownValue} segons per confirmar que vols desinstal·lar el mode offline
+                  </p>
                 </div>
               )}
             </div>

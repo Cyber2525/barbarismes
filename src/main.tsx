@@ -164,22 +164,47 @@ if ('serviceWorker' in navigator) {
     }
   });
   
-  // Check for updates on page load only if we just came online or version mismatch detected
+  // Trigger update when page is fully loaded
   window.addEventListener('load', () => {
-    console.log('Page fully loaded');
-    // Only check version, don't automatically trigger reinstall every time
+    console.log('Page fully loaded, checking for updates');
+    // Only run if we're online and offline mode is enabled
     if (navigator.onLine && localStorage.getItem('offlineModeEnabled') === 'true') {
-      console.log('Offline mode is enabled, service worker should be active');
+      console.log('Triggering automatic update on page load');
       
-      // Just notify service worker to check version, don't force automatic install
+      // Short delay to ensure everything is properly initialized
       setTimeout(() => {
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({
-            type: 'CHECK_VERSION'
+        // Test connectivity before update
+        fetch('/', { method: 'HEAD', cache: 'no-store' })
+          .then(() => {
+            console.log('Page load update: Network connectivity confirmed');
+            if (navigator.serviceWorker.controller) {
+              // Notify UI that update is starting
+              window.dispatchEvent(new CustomEvent('auto-update-started', {
+                detail: { trigger: 'page-load', label: 'Actualitzant' }
+              }));
+              
+              // Start the update process with dynamic progress tracking
+              navigator.serviceWorker.controller.postMessage({
+                type: 'CACHE_ALL',
+                isAutoUpdate: true,
+                updateLabel: 'Actualitzant'
+              });
+              
+              // Dispatch event to update UI
+              window.dispatchEvent(new CustomEvent('auto-update-started', {
+                detail: { 
+                  label: 'Actualitzant',
+                  trigger: 'automatic'
+                }
+              }));
+              
+              console.log('Automatic update initiated on page load');
+            }
+          })
+          .catch(err => {
+            console.log('Page load update: Network test failed', err);
           });
-          console.log('Version check requested on page load');
-        }
-      }, 500);
+      }, 1500);
     }
   });
   
