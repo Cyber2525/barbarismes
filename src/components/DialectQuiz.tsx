@@ -25,11 +25,11 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
   // Generate questions when quiz parameters change or app reloads
   useEffect(() => {
     if (quizStarted) {
-      const newQuestions = generateQuestions(quizType, quizSize);
+      const newQuestions = generateQuestions(quizType, quizSize, quizMode);
       setQuestions(newQuestions);
       resetQuiz();
     }
-  }, [quizStarted, quizType, quizSize]);
+  }, [quizStarted, quizType, quizSize, quizMode]);
   
   // Add a reload effect to ensure new random sequence on each app load
   useEffect(() => {
@@ -47,161 +47,210 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
     setQuizCompleted(false);
   };
 
-  const generateQuestions = (type: DialectQuizType, size: number): DialectQuestion[] => {
+  const generateQuestions = (type: DialectQuizType, size: number, mode: DialectQuizMode): DialectQuestion[] => {
     let questions: DialectQuestion[] = [];
     
-    if (type === 'bloc') {
-      // Generate bloc identification questions
-      const traits = [...dialectGroups[0].characteristics, ...dialectGroups[1].characteristics];
-      const shuffledTraits = shuffleArray([...traits]);
-      
-      // Create questions about bloc identification based on traits
-      for (let i = 0; i < shuffledTraits.length && questions.length < size; i++) {
-        const trait = shuffledTraits[i];
-        // Determine which bloc this trait belongs to
-        const isOriental = dialectGroups[0].characteristics.includes(trait);
-        const correctBloc = isOriental ? 'oriental' : 'occidental';
+    if (mode === 'multiple') {
+      // MULTIPLE SELECTION MODE: Question is dialect/bloc, answers are 3 correct + 3 incorrect characteristics
+      if (type === 'bloc') {
+        // Generate questions for each bloc
+        const blocs = [
+          { name: 'Oriental', traits: dialectGroups[0].characteristics, otherTraits: dialectGroups[1].characteristics },
+          { name: 'Occidental', traits: dialectGroups[1].characteristics, otherTraits: dialectGroups[0].characteristics }
+        ];
         
-        // Randomize option order
-        const options = shuffleArray(['oriental', 'occidental']);
-        
-        // Determine if this trait is about pronunciation
-        const isPronunciation = trait.includes('pronunci') || 
-                                trait.includes('vocal') || 
-                                trait.includes('fonema') ||
-                                trait.includes('neutralitz');
-        
-        questions.push({
-          id: `bloc-${i}`,
-          type: 'bloc',
-          prompt: `A quin bloc dialectal pertany aquest tret?`,
-          content: trait,
-          options: options,
-          correctAnswer: correctBloc,
-          multipleCorrect: false,
-          explanation: `Aquest tret és característic del bloc ${correctBloc}.`,
-          isPronunciation: isPronunciation
-        });
-      }
-      
-      // If we don't have enough questions from traits, add some based on dialect examples
-      if (questions.length < size) {
-        const examples = dialectItems.flatMap(dialect => 
-          dialect.examples.map(ex => ({
-            text: ex.dialectText,
-            standard: ex.standardText,
-            dialectId: dialect.id,
-            group: dialect.group
-          }))
-        );
-        
-        const shuffledExamples = shuffleArray([...examples]);
-        
-        for (let i = 0; i < shuffledExamples.length && questions.length < size; i++) {
-          const example = shuffledExamples[i];
-          // Randomize option order
-          const options = shuffleArray(['oriental', 'occidental']);
+        // Generate multiple questions per bloc to reach the desired size
+        for (let round = 0; round < Math.ceil(size / 2); round++) {
+          const shuffledBlocs = shuffleArray([...blocs]);
           
-          questions.push({
-            id: `bloc-example-${i}`,
-            type: 'bloc',
-            prompt: `A quin bloc dialectal pertany aquest exemple?`,
-            content: example.text,
-            additionalInfo: `Català estàndard: "${example.standard}"`,
-            options: options,
-            correctAnswer: example.group,
-            multipleCorrect: false,
-            explanation: `Aquesta expressió és característica del bloc ${example.group}.`,
-            isPronunciation: example.text.includes('cantu') || 
-                             example.text.includes('canti') || 
-                             example.text.includes('aigo') || 
-                             example.text.includes('famili') ||
-                             example.text.includes('histori')
-          });
+          for (let i = 0; i < shuffledBlocs.length && questions.length < size; i++) {
+            const bloc = shuffledBlocs[i];
+            
+            if (bloc.traits.length >= 3 && bloc.otherTraits.length >= 3) {
+              // Select 3 correct traits from this bloc (different each round)
+              const availableCorrect = shuffleArray([...bloc.traits]);
+              const correctTraits = availableCorrect.slice(0, 3);
+              
+              // Select 3 incorrect traits from the other bloc
+              const availableIncorrect = shuffleArray([...bloc.otherTraits]);
+              const incorrectTraits = availableIncorrect.slice(0, 3);
+              
+              // Combine and shuffle all 6 traits
+              const allTraits = shuffleArray([...correctTraits, ...incorrectTraits]);
+              
+              questions.push({
+                id: `bloc-multi-${round}-${i}`,
+                type: 'bloc',
+                prompt: `Selecciona les 3 característiques correctes del bloc dialectal:`,
+                content: bloc.name,
+                options: allTraits,
+                correctAnswer: correctTraits,
+                multipleCorrect: true,
+                explanation: `Les característiques correctes del bloc ${bloc.name} són: ${correctTraits.join(', ')}.`
+              });
+            }
+          }
+        }
+      } else {
+        // Generate dialect-specific multiple selection questions
+        const allDialects = [...dialectItems];
+        
+        // Generate multiple questions per dialect to reach the desired size
+        for (let round = 0; round < Math.ceil(size / allDialects.length); round++) {
+          const shuffledDialects = shuffleArray([...allDialects]);
+          
+          for (let i = 0; i < shuffledDialects.length && questions.length < size; i++) {
+            const dialect = shuffledDialects[i];
+            
+            if (dialect.characteristics.length >= 3) {
+              // Select 3 correct traits from this dialect
+              const correctTraits = shuffleArray([...dialect.characteristics]).slice(0, 3);
+              
+              // Find 3 incorrect traits (from other dialects)
+              const otherDialects = allDialects.filter(d => d.id !== dialect.id);
+              const incorrectTraits = shuffleArray(
+                otherDialects
+                  .flatMap(d => d.characteristics)
+                  .filter(c => !correctTraits.includes(c))
+              ).slice(0, 3);
+              
+              // Combine and shuffle all 6 traits
+              const allTraits = shuffleArray([...correctTraits, ...incorrectTraits]);
+              
+              questions.push({
+                id: `dialect-multi-${round}-${i}`,
+                type: 'dialect',
+                prompt: `Selecciona les 3 característiques correctes del dialecte:`,
+                content: dialect.name,
+                options: allTraits,
+                correctAnswer: correctTraits,
+                multipleCorrect: true,
+                explanation: `Les característiques correctes del ${dialect.name} són: ${correctTraits.join(', ')}.`
+              });
+            }
+          }
         }
       }
     } else {
-      // Generate dialect-specific questions
-      const allDialects = [...dialectItems];
-      const shuffledDialects = shuffleArray([...allDialects]);
-      
-      // Questions to identify dialects based on characteristics
-      for (let i = 0; i < shuffledDialects.length && questions.length < size; i++) {
-        const dialect = shuffledDialects[i];
+      // SINGLE SELECTION MODE: Original behavior
+      if (type === 'bloc') {
+        // Generate bloc identification questions
+        const traits = [...dialectGroups[0].characteristics, ...dialectGroups[1].characteristics];
+        const shuffledTraits = shuffleArray([...traits]);
         
-        if (dialect.characteristics.length > 0) {
-          // Randomly select a characteristic to use for the question
-          const charIndex = Math.floor(Math.random() * dialect.characteristics.length);
-          const characteristic = dialect.characteristics[charIndex];
+        // Create questions about bloc identification based on traits
+        for (let i = 0; i < shuffledTraits.length && questions.length < size; i++) {
+          const trait = shuffledTraits[i];
+          // Determine which bloc this trait belongs to
+          const isOriental = dialectGroups[0].characteristics.includes(trait);
+          const correctBloc = isOriental ? 'oriental' : 'occidental';
           
-          // Create all dialects as options and shuffle them
-          const dialectOptions = shuffleArray(dialectItems.map(d => d.name));
+          // Randomize option order
+          const options = shuffleArray(['oriental', 'occidental']);
+          
+          // Determine if this trait is about pronunciation
+          const isPronunciation = trait.includes('pronunci') || 
+                                  trait.includes('vocal') || 
+                                  trait.includes('fonema') ||
+                                  trait.includes('neutralitz');
           
           questions.push({
-            id: `dialect-char-${i}`,
-            type: 'dialect',
-            prompt: `A quin dialecte pertany aquesta característica?`,
-            content: characteristic,
-            options: dialectOptions,
-            correctAnswer: dialect.name,
+            id: `bloc-${i}`,
+            type: 'bloc',
+            prompt: `A quin bloc dialectal pertany aquest tret?`,
+            content: trait,
+            options: options,
+            correctAnswer: correctBloc,
             multipleCorrect: false,
-            explanation: `Aquesta característica és pròpia del dialecte ${dialect.name}.`
+            explanation: `Aquest tret és característic del bloc ${correctBloc}.`,
+            isPronunciation: isPronunciation
           });
         }
         
-        // If the dialect has examples, create a question from an example
-        if (dialect.examples.length > 0 && questions.length < size) {
-          const exIndex = Math.floor(Math.random() * dialect.examples.length);
-          const example = dialect.examples[exIndex];
+        // If we don't have enough questions from traits, add some based on dialect examples
+        if (questions.length < size) {
+          const examples = dialectItems.flatMap(dialect => 
+            dialect.examples.map(ex => ({
+              text: ex.dialectText,
+              standard: ex.standardText,
+              dialectId: dialect.id,
+              group: dialect.group
+            }))
+          );
           
-          // Create all dialects as options and shuffle them
-          const dialectOptions = shuffleArray(dialectItems.map(d => d.name));
+          const shuffledExamples = shuffleArray([...examples]);
           
-          questions.push({
-            id: `dialect-example-${i}`,
-            type: 'dialect',
-            prompt: `A quin dialecte pertany aquesta expressió?`,
-            content: example.dialectText,
-            additionalInfo: `Català estàndard: "${example.standardText}"`,
-            options: dialectOptions,
-            correctAnswer: dialect.name,
-            multipleCorrect: false,
-            explanation: `Aquesta expressió és característica del dialecte ${dialect.name}.`,
-            isPronunciation: example.isPronunciation || false
-          });
-        }
-      }
-      
-      // For multiple selection questions (identifying multiple traits)
-      if (questions.length < size) {
-        const shuffledDialects2 = shuffleArray([...allDialects]);
-        
-        for (let i = 0; i < shuffledDialects2.length && questions.length < size; i++) {
-          const dialect = shuffledDialects2[i];
-          
-          if (dialect.characteristics.length >= 3) {
-            // Create a question where multiple traits belong to a dialect
-            const correctTraits = shuffleArray([...dialect.characteristics]).slice(0, 3);
-            
-            // Find some incorrect traits (from other dialects)
-            const otherDialects = allDialects.filter(d => d.id !== dialect.id);
-            const incorrectTraits = otherDialects
-              .flatMap(d => d.characteristics)
-              .filter(c => !correctTraits.includes(c));
-            
-            // Combine correct and incorrect traits and shuffle
-            const allTraits = [...correctTraits, ...shuffleArray(incorrectTraits).slice(0, 3)];
-            const options = shuffleArray(allTraits);
+          for (let i = 0; i < shuffledExamples.length && questions.length < size; i++) {
+            const example = shuffledExamples[i];
+            // Randomize option order
+            const options = shuffleArray(['oriental', 'occidental']);
             
             questions.push({
-              id: `dialect-multi-${i}`,
-              type: 'dialect',
-              prompt: `Quines característiques pertanyen al dialecte ${dialect.name}?`,
-              content: `Selecciona totes les característiques que pertanyen al dialecte ${dialect.name}.`,
+              id: `bloc-example-${i}`,
+              type: 'bloc',
+              prompt: `A quin bloc dialectal pertany aquest exemple?`,
+              content: example.text,
+              additionalInfo: `Català estàndard: "${example.standard}"`,
               options: options,
-              correctAnswer: correctTraits,
-              multipleCorrect: true,
-              explanation: `Aquestes característiques són pròpies del dialecte ${dialect.name}.`
+              correctAnswer: example.group,
+              multipleCorrect: false,
+              explanation: `Aquesta expressió és característica del bloc ${example.group}.`,
+              isPronunciation: example.text.includes('cantu') || 
+                               example.text.includes('canti') || 
+                               example.text.includes('aigo') || 
+                               example.text.includes('famili') ||
+                               example.text.includes('histori')
+            });
+          }
+        }
+      } else {
+        // Generate dialect-specific questions
+        const allDialects = [...dialectItems];
+        const shuffledDialects = shuffleArray([...allDialects]);
+        
+        // Questions to identify dialects based on characteristics
+        for (let i = 0; i < shuffledDialects.length && questions.length < size; i++) {
+          const dialect = shuffledDialects[i];
+          
+          if (dialect.characteristics.length > 0) {
+            // Randomly select a characteristic to use for the question
+            const charIndex = Math.floor(Math.random() * dialect.characteristics.length);
+            const characteristic = dialect.characteristics[charIndex];
+            
+            // Create all dialects as options and shuffle them
+            const dialectOptions = shuffleArray(dialectItems.map(d => d.name));
+            
+            questions.push({
+              id: `dialect-char-${i}`,
+              type: 'dialect',
+              prompt: `A quin dialecte pertany aquesta característica?`,
+              content: characteristic,
+              options: dialectOptions,
+              correctAnswer: dialect.name,
+              multipleCorrect: false,
+              explanation: `Aquesta característica és pròpia del dialecte ${dialect.name}.`
+            });
+          }
+          
+          // If the dialect has examples, create a question from an example
+          if (dialect.examples.length > 0 && questions.length < size) {
+            const exIndex = Math.floor(Math.random() * dialect.examples.length);
+            const example = dialect.examples[exIndex];
+            
+            // Create all dialects as options and shuffle them
+            const dialectOptions = shuffleArray(dialectItems.map(d => d.name));
+            
+            questions.push({
+              id: `dialect-example-${i}`,
+              type: 'dialect',
+              prompt: `A quin dialecte pertany aquesta expressió?`,
+              content: example.dialectText,
+              additionalInfo: `Català estàndard: "${example.standardText}"`,
+              options: dialectOptions,
+              correctAnswer: dialect.name,
+              multipleCorrect: false,
+              explanation: `Aquesta expressió és característica del dialecte ${dialect.name}.`,
+              isPronunciation: example.isPronunciation || false
             });
           }
         }
@@ -210,27 +259,6 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
     
     // Ensure we have the requested number of questions (or less if not enough data)
     const finalQuestions = shuffleArray(questions).slice(0, size);
-    
-    // Make some questions multi-select even if they're not naturally multi-answer
-    // This is only if quizMode is 'multiple' - we'll convert some single-answer questions
-    if (quizMode === 'multiple') {
-      finalQuestions.forEach(q => {
-        // Only convert bloc questions or dialect identification questions
-        if (!q.multipleCorrect && Math.random() > 0.5) {
-          // Add additional correct answers for variety (only for certain question types)
-          if (q.type === 'bloc' && Array.isArray(q.options)) {
-            q.multipleCorrect = true;
-            
-            // For bloc questions, we sometimes want to allow both as correct
-            // (when a trait is shared between blocs)
-            if (Math.random() > 0.8) {
-              q.correctAnswer = q.options;
-              q.explanation = "Aquest tret és compartit pels dos blocs dialectals.";
-            }
-          }
-        }
-      });
-    }
     
     return finalQuestions;
   };
@@ -333,6 +361,11 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
             )}
           {question.additionalInfo && (
             <p className="text-sm text-gray-500 mt-2 italic">{question.additionalInfo}</p>
+          )}
+          {question.multipleCorrect && (
+            <p className="text-sm text-blue-600 mt-2 font-medium">
+              Selecciona exactament 3 característiques correctes
+            </p>
           )}
         </div>
         
