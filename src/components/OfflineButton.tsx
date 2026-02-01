@@ -744,10 +744,6 @@ export function OfflineButton() {
               
               {isMobile ? (
                 <>
-                  <p className="text-sm font-medium text-red-800 mb-3">
-                    Llisca fins al final per confirmar que vols desinstal·lar el mode offline
-                  </p>
-                  
                   {/* Swipe to confirm component (mobile only) */}
                   <div className="relative h-12 bg-gray-100 rounded-lg mt-3 overflow-hidden">
                     {/* Swipeable element */}
