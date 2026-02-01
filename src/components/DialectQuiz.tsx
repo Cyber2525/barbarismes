@@ -440,15 +440,9 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
                   <p className={`font-medium ${isCorrect ? 'text-green-700' : 'text-red-700'}`}>
                     {isCorrect ? 'Correcte!' : 'Incorrecte'}
                   </p>
-                  {/* Show explanation only in single mode or when incorrect */}
-                  {(!question.multipleCorrect || !isCorrect) && (
+                  {/* Show explanation only in single mode */}
+                  {!question.multipleCorrect && (
                     <p className="text-gray-700 text-sm mt-1">{questions[currentIndex].explanation}</p>
-                  )}
-                  {/* In multiple mode when incorrect, show generic message without revealing answers */}
-                  {!isCorrect && question.multipleCorrect && (
-                    <p className="text-gray-700 text-sm mt-1">
-                      Revisa les opcions marcades en verd per veure les respostes correctes.
-                    </p>
                   )}
                 </div>
               </div>
