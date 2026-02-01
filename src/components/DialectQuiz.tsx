@@ -363,59 +363,60 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
             <p className="text-sm text-gray-500 mt-2 italic">{question.additionalInfo}</p>
           )}
           {question.multipleCorrect && (
-            <p className="text-sm text-blue-600 mt-2 font-medium">
+            <p className="text-sm text-red-600 mt-2 font-medium">
               Selecciona exactament 3 característiques correctes
             </p>
           )}
         </div>
         
         <div className="space-y-3 mb-6">
-          {Array.isArray(options) && options.map((option, index) => (
-            <div 
-              key={index}
-              onClick={() => handleOptionChange(option)}
-              className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                selectedOptions.includes(option)
-                  ? answered
-                    ? isCorrect
-                      ? 'bg-green-100 border-green-300'
-                      : Array.isArray(question.correctAnswer)
-                        ? question.correctAnswer.includes(option)
-                          ? 'bg-green-100 border-green-300'
-                          : 'bg-red-100 border-red-300'
-                        : option === question.correctAnswer
-                          ? 'bg-green-100 border-green-300'
-                          : 'bg-red-100 border-red-300'
-                    : 'bg-red-50 border-red-300'
-                  : answered && (
-                    Array.isArray(question.correctAnswer)
-                      ? question.correctAnswer.includes(option)
-                        ? 'bg-green-100 border-green-300'
-                        : 'border-gray-200'
-                      : option === question.correctAnswer
-                        ? 'bg-green-100 border-green-300'
-                        : 'border-gray-200'
-                  )
-              }`}
-            >
-              <div className="flex items-center">
-                <div className={`w-6 h-6 flex-shrink-0 rounded-full border mr-3 flex items-center justify-center ${
-                  selectedOptions.includes(option)
-                    ? answered
-                      ? isCorrect
-                        ? 'bg-green-600 border-green-600 text-white' // Selected and correct
-                        : 'bg-red-600 border-red-600 text-white'     // Selected but incorrect
-                      : 'bg-red-600 border-red-600 text-white'       // Selected but not yet answered
-                    : 'border-gray-300'                              // Not selected
-                }`}>
-                  {selectedOptions.includes(option) && (
-                    quizMode === 'single' ? <ChevronRight size={14} /> : <Check size={14} />
-                  )}
+          {Array.isArray(options) && options.map((option, index) => {
+            const isCorrectOption = Array.isArray(question.correctAnswer)
+              ? question.correctAnswer.includes(option)
+              : option === question.correctAnswer;
+            const isSelected = selectedOptions.includes(option);
+            
+            // Determine background color
+            let bgClass = 'border-gray-200';
+            if (answered) {
+              if (isCorrectOption) {
+                bgClass = 'bg-green-100 border-green-300'; // All correct options in green
+              } else if (isSelected) {
+                bgClass = 'bg-red-100 border-red-300'; // Selected but incorrect
+              }
+            } else if (isSelected) {
+              bgClass = 'bg-red-50 border-red-300'; // Selected but not yet answered
+            }
+            
+            // Determine circle color
+            let circleClass = 'border-gray-300';
+            if (answered) {
+              if (isCorrectOption) {
+                circleClass = 'bg-green-600 border-green-600 text-white'; // Correct options get green circle
+              } else if (isSelected) {
+                circleClass = 'bg-red-600 border-red-600 text-white'; // Selected incorrect get red circle
+              }
+            } else if (isSelected) {
+              circleClass = 'bg-red-600 border-red-600 text-white'; // Selected but not yet answered
+            }
+            
+            return (
+              <div 
+                key={index}
+                onClick={() => handleOptionChange(option)}
+                className={`p-3 rounded-lg border cursor-pointer transition-colors ${bgClass}`}
+              >
+                <div className="flex items-center">
+                  <div className={`w-6 h-6 flex-shrink-0 rounded-full border mr-3 flex items-center justify-center ${circleClass}`}>
+                    {(isSelected || (answered && isCorrectOption)) && (
+                      quizMode === 'single' ? <ChevronRight size={14} /> : <Check size={14} />
+                    )}
+                  </div>
+                  <span className="text-gray-800">{option}</span>
                 </div>
-                <span className="text-gray-800">{option}</span>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         
         <div className={`expandable-content ${answered ? 'expanded' : ''}`}>
@@ -429,7 +430,16 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
                   <p className={`font-medium ${isCorrect ? 'text-green-700' : 'text-red-700'}`}>
                     {isCorrect ? 'Correcte!' : 'Incorrecte'}
                   </p>
-                  <p className="text-gray-700 text-sm mt-1">{questions[currentIndex].explanation}</p>
+                  {/* Only show explanation text if correct, or if incorrect in single mode */}
+                  {(isCorrect || !question.multipleCorrect) && (
+                    <p className="text-gray-700 text-sm mt-1">{questions[currentIndex].explanation}</p>
+                  )}
+                  {/* In multiple mode when incorrect, show generic message without revealing answers */}
+                  {!isCorrect && question.multipleCorrect && (
+                    <p className="text-gray-700 text-sm mt-1">
+                      Revisa les opcions marcades en verd per veure les respostes correctes.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -439,7 +449,11 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
           {!answered ? (
             <button
               onClick={checkAnswer}
-              disabled={selectedOptions.length === 0}
+              disabled={
+                question.multipleCorrect 
+                  ? selectedOptions.length !== 3 
+                  : selectedOptions.length === 0
+              }
               className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-6 rounded-lg transition-all duration-300 disabled:bg-red-300 disabled:cursor-not-allowed"
             >
               Comprovar
