@@ -22,6 +22,7 @@ export function OfflineButton() {
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const stateCheckRef = useRef<boolean>(false); // Prevent multiple checks
   const mountedRef = useRef(true); // Track if component is mounted
+  const installStateRef = useRef<InstallState>('checking'); // Keep ref for timeout checks
   
   // Derived states for cleaner conditionals
   const isInstalled = installState === 'installed';
@@ -31,6 +32,7 @@ export function OfflineButton() {
   // Stable callback for setting install state with mount check
   const safeSetInstallState = useCallback((state: InstallState) => {
     if (mountedRef.current) {
+      installStateRef.current = state;
       setInstallState(state);
     }
   }, []);
@@ -238,7 +240,7 @@ export function OfflineButton() {
     
     // Installation timeout
     const installTimeout = setTimeout(() => {
-      if (installState === 'installing') {
+      if (installStateRef.current === 'installing') {
         handleInstallationFailure("La installacio ha excedit el temps d'espera");
       }
     }, 45000);
