@@ -3,12 +3,7 @@ import { ArrowRight, Check, CircleAlert, Download, RefreshCw, Timer, Trash2, Wif
 import { SwipeToConfirm } from './SwipeToConfirm';
 
 export function OfflineButton() {
-  // Check localStorage immediately on mount to set initial installed state
-  const [isInstalled, setIsInstalled] = useState(() => {
-    const offlineModeEnabled = localStorage.getItem('offlineModeEnabled') === 'true';
-    console.log('[v0] Initial isInstalled state:', offlineModeEnabled);
-    return offlineModeEnabled;
-  });
+  const [isInstalled, setIsInstalled] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isInstalling, setIsInstalling] = useState(false);
   const [installationError, setInstallationError] = useState<string | null>(null);
@@ -196,52 +191,35 @@ export function OfflineButton() {
   }, [cachingProgress]);
   
   const checkOfflineStatus = () => {
-    console.log('[v0] Checking offline status...');
-    
     // Check if we previously enabled offline mode
     const offlineModeEnabled = localStorage.getItem('offlineModeEnabled') === 'true';
     
-    // Check if we have a service worker controller - this means we loaded from cache
-    const hasController = 'serviceWorker' in navigator && navigator.serviceWorker.controller;
-    
-    console.log('[v0] Offline check:', { offlineModeEnabled, hasController, isOffline });
-    
-    // IMPORTANT: If localStorage says we're installed, trust it and don't set to false
-    // This prevents flickering when reloading offline from cache
-    if (offlineModeEnabled) {
-      // Already installed according to localStorage - keep it true
-      console.log('[v0] App is marked as installed in localStorage');
-      setIsInstalled(true);
-    } else if (!hasController) {
-      // Not in localStorage and no controller - definitely not installed
-      setIsInstalled(false);
-    }
-    
-    // Verify with service worker for additional confirmation
     if (offlineModeEnabled && 'serviceWorker' in navigator) {
       navigator.serviceWorker.ready
         .then(() => {
-          console.log('[v0] Service worker is ready, verifying cache status');
+          console.log('Service worker is ready, checking cache status');
           
-          // Check with the service worker about cache status for confirmation
+          // Don't assume installed, wait for the service worker to confirm
+          setIsInstalled(false); // Start as not installed until confirmed
+          
+          // Check with the service worker about cache status
           if (navigator.serviceWorker.controller) {
-            console.log('[v0] Sending CHECK_CACHE_STATUS message to service worker');
+            console.log('Sending CHECK_CACHE_STATUS message to service worker');
             navigator.serviceWorker.controller.postMessage({
               type: 'CHECK_CACHE_STATUS'
             });
           } else {
-            console.log('[v0] No active service worker controller found - this might indicate an issue');
-            // Don't set to false here if localStorage says installed - might just be timing
+            console.log('No active service worker controller found');
+            setIsInstalled(false);
           }
         })
         .catch((error) => {
           // If service worker is not ready despite offlineModeEnabled flag
-          console.error('[v0] Service worker ready check failed:', error);
-          // Only set to false if we're not offline - if offline, we can't verify anyway
-          if (navigator.onLine) {
-            setIsInstalled(false);
-          }
+          console.error('Service worker ready check failed:', error);
+          setIsInstalled(false);
         });
+    } else {
+      setIsInstalled(false);
     }
   };
   
