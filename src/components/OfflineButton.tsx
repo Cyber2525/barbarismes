@@ -1,9 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowRight, Check, CircleAlert, Download, RefreshCw, Timer, Trash2, Wifi, WifiOff, X } from 'lucide-react';
 import { SwipeToConfirm } from './SwipeToConfirm';
 
+// Installation status enum for clarity
+type InstallStatus = 'unknown' | 'checking' | 'installed' | 'not-installed';
+
+// Cache name must match service worker
+const EXPECTED_CACHE_NAME = 'mots-correctes-cache-v4';
+
 export function OfflineButton() {
-  const [isInstalled, setIsInstalled] = useState(false);
+  // Use a more explicit status instead of boolean
+  const [installStatus, setInstallStatus] = useState<InstallStatus>('unknown');
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isInstalling, setIsInstalling] = useState(false);
   const [installationError, setInstallationError] = useState<string | null>(null);
@@ -17,58 +24,142 @@ export function OfflineButton() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Monitor online/offline status with debounce to prevent flickering
+  // Derived state for backwards compatibility
+  const isInstalled = installStatus === 'installed';
+  
+  // Robust cache check that works both online and offline
+  const checkCacheDirectly = useCallback(async (): Promise<boolean> => {
+    try {
+      if (!('caches' in window)) {
+        console.log('[v0] Cache API not available');
+        return false;
+      }
+      
+      // Check if our cache exists
+      const hasCache = await caches.has(EXPECTED_CACHE_NAME);
+      if (!hasCache) {
+        console.log('[v0] Cache does not exist');
+        return false;
+      }
+      
+      // Open cache and check for critical files
+      const cache = await caches.open(EXPECTED_CACHE_NAME);
+      const keys = await cache.keys();
+      
+      console.log(`[v0] Cache has ${keys.length} items`);
+      
+      // Check for minimum critical files (/, /index.html, /manifest.json)
+      const criticalUrls = ['/', '/index.html', '/manifest.json'];
+      const cachedUrls = keys.map(req => new URL(req.url).pathname);
+      
+      const hasCriticalFiles = criticalUrls.every(url => 
+        cachedUrls.includes(url) || cachedUrls.some(cached => cached.endsWith(url))
+      );
+      
+      // Also check we have at least some JS/CSS assets
+      const hasAssets = cachedUrls.some(url => url.includes('/assets/'));
+      
+      const isValid = keys.length >= 3 && (hasCriticalFiles || hasAssets);
+      
+      console.log(`[v0] Cache validation: ${isValid ? 'VALID' : 'INVALID'}`, {
+        itemCount: keys.length,
+        hasCriticalFiles,
+        hasAssets,
+        criticalUrls,
+        sampleCachedUrls: cachedUrls.slice(0, 5)
+      });
+      
+      return isValid;
+    } catch (error) {
+      console.error('[v0] Error checking cache directly:', error);
+      return false;
+    }
+  }, []);
+  
+  // Main installation check - uses multiple methods for reliability
+  const determineInstallStatus = useCallback(async () => {
+    console.log('[v0] Determining installation status...');
+    setInstallStatus('checking');
+    
+    const localStorageFlag = localStorage.getItem('offlineModeEnabled') === 'true';
+    console.log('[v0] localStorage flag:', localStorageFlag);
+    
+    // Primary check: directly verify cache exists and has content
+    const cacheIsValid = await checkCacheDirectly();
+    console.log('[v0] Direct cache check result:', cacheIsValid);
+    
+    if (cacheIsValid) {
+      // Cache is valid - we're installed
+      setInstallStatus('installed');
+      // Ensure localStorage is in sync
+      if (!localStorageFlag) {
+        localStorage.setItem('offlineModeEnabled', 'true');
+      }
+      console.log('[v0] Status: INSTALLED (cache validated)');
+      return;
+    }
+    
+    // Cache check failed - but maybe we're in a weird state
+    // If localStorage says installed but cache is gone, clear the flag
+    if (localStorageFlag && !cacheIsValid) {
+      console.log('[v0] localStorage says installed but cache is invalid - clearing flag');
+      localStorage.removeItem('offlineModeEnabled');
+    }
+    
+    // Secondary check: if we have a service worker controller, ask it
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      console.log('[v0] Requesting cache status from service worker...');
+      navigator.serviceWorker.controller.postMessage({ type: 'CHECK_CACHE_STATUS' });
+      // Don't wait - the message handler will update status
+      // But set a timeout to finalize status if no response
+      setTimeout(() => {
+        setInstallStatus(prev => prev === 'checking' ? 'not-installed' : prev);
+      }, 2000);
+      return;
+    }
+    
+    // No controller and cache invalid - definitely not installed
+    setInstallStatus('not-installed');
+    console.log('[v0] Status: NOT INSTALLED');
+  }, [checkCacheDirectly]);
+  
+  // Monitor online/offline status with debounce
   useEffect(() => {
     let networkStatusTimeout: NodeJS.Timeout | null = null;
     
     const handleOnlineStatus = () => {
-      // Clear any existing timeout to prevent rapid state changes
       if (networkStatusTimeout) {
         clearTimeout(networkStatusTimeout);
       }
       
-      // Debounce network status changes to prevent UI flickering
       networkStatusTimeout = setTimeout(() => {
         const isCurrentlyOffline = !navigator.onLine;
         setIsOffline(isCurrentlyOffline);
         
         // Notify service worker about connectivity status
-        if (navigator.serviceWorker.controller) {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
           navigator.serviceWorker.controller.postMessage({
             type: 'CONNECTIVITY_CHANGE',
             offlineMode: isCurrentlyOffline
           });
         }
         
-        // If we go offline during installation, abort the process
+        // If we go offline during installation, abort
         if (isCurrentlyOffline && isInstalling) {
           handleInstallationFailure("Connexió perduda. La instal·lació s'ha cancel·lat.");
         }
       }, 300);
     };
     
-    // Check initial status
     setIsOffline(!navigator.onLine);
     
     // Listen for app updates needed
     const handleUpdateNeeded = (event: CustomEvent) => {
-      console.log('Update needed event received:', event.detail);
+      console.log('[v0] Update needed event received:', event.detail);
       if (!isInstalling) {
         setUpdateAvailable(true);
-        
-        // Log the reason for the update requirement
         if (event.detail.reason) {
-          console.log('Update reason:', event.detail.reason);
-          
-          // If there are missing files, log them
-          if (event.detail.missingFiles && event.detail.missingFiles.length > 0) {
-            console.log('Missing critical files:', event.detail.missingFiles);
-          }
-          
-          // If there's a cache integrity issue
-          if (event.detail.cacheIntegrity === 'invalid') {
-            console.log('Cache integrity check failed');
-          }
+          console.log('[v0] Update reason:', event.detail.reason);
         }
       }
     };
@@ -78,208 +169,115 @@ export function OfflineButton() {
     window.addEventListener('app-update-needed', handleUpdateNeeded as EventListener);
     
     return () => {
-      if (networkStatusTimeout) {
-        clearTimeout(networkStatusTimeout);
-      }
+      if (networkStatusTimeout) clearTimeout(networkStatusTimeout);
       window.removeEventListener('online', handleOnlineStatus);
       window.removeEventListener('offline', handleOnlineStatus);
       window.removeEventListener('app-update-needed', handleUpdateNeeded as EventListener);
     };
   }, [isInstalling]);
   
-  // Check if app is already installed/cached on component mount
+  // Initial installation check on mount
   useEffect(() => {
-    // Listen for service worker messages with minimal throttling for smooth updates
+    // Run check immediately - no artificial delay
+    determineInstallStatus();
+    
+    // Also re-check when service worker becomes ready
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(() => {
+        console.log('[v0] Service worker ready - re-checking status');
+        // Small delay to let SW settle
+        setTimeout(() => determineInstallStatus(), 100);
+      }).catch(err => {
+        console.error('[v0] Service worker ready failed:', err);
+      });
+    }
+  }, [determineInstallStatus]);
+  
+  // Service worker message handler
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+    
     let lastProgressUpdate = 0;
-    const PROGRESS_UPDATE_THROTTLE = 50; // ms between updates (0.05s)
-    let lastProgressValue = 0; // Track last progress value to ensure all steps are shown
-    let stateChangeTimeout: NodeJS.Timeout | null = null; // Debounce state changes
-    let installationCheckTimeout: NodeJS.Timeout | null = null;
+    const PROGRESS_UPDATE_THROTTLE = 50;
+    let lastProgressValue = 0;
     
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (!event.data) return;
       
-      console.log('Received message from Service Worker:', event.data);
+      console.log('[v0] SW message:', event.data.type, event.data);
       
-      if (event.data.type === 'OFFLINE_READY' || event.data.type === 'CACHE_ALL_COMPLETE') {
-        setIsInstalled(true);
-        setIsInstalling(false);
-        setUpdateAvailable(false);
-        localStorage.setItem('offlineModeEnabled', 'true');
-        setCachingProgress(100);
-        // Debounce the installed state change to avoid flickering
-        if (stateChangeTimeout) clearTimeout(stateChangeTimeout);
-        stateChangeTimeout = setTimeout(() => {
-          setIsInstalled(true);
+      switch (event.data.type) {
+        case 'OFFLINE_READY':
+        case 'CACHE_ALL_COMPLETE':
+          setInstallStatus('installed');
           setIsInstalling(false);
           setUpdateAvailable(false);
-          localStorage.setItem('offlineModeEnabled', 'true');
           setCachingProgress(100);
-          console.log('[v0] App installation confirmed and completed');
-        }, 100);
-        
-        // Remove updating toast if it exists
-        const updatingToast = document.getElementById('updating-toast');
-        if (updatingToast) {
-          document.body.removeChild(updatingToast);
-        }
-        
-        // If this was an auto update, just reset state
-        if (event.data.isAutoUpdate) {
-          // Reset installation/update state
-          setIsInstalling(false);
-        }
-      } else if (event.data.type === 'CACHE_STATUS') {
-        setIsInstalled(event.data.exists && event.data.itemCount > 5);
-        // Update installed state based on cache status
-        const hasCache = event.data.exists && event.data.itemCount > 5;
-        console.log('[v0] Cache status confirmed:', { exists: event.data.exists, itemCount: event.data.itemCount, hasCache });
-        
-        // Sync with localStorage
-        if (hasCache) {
-          setIsInstalled(true);
           localStorage.setItem('offlineModeEnabled', 'true');
-        } else {
-          setIsInstalled(false);
-          localStorage.removeItem('offlineModeEnabled');
-        }
-      } else if (event.data.type === 'CACHE_ALL_FAILED') {
-        handleInstallationFailure(event.data.error || 'Unknown error');
-      } else if (event.data.type === 'CACHING_PROGRESS') {
-        // Minimal throttling for smooth updates
-        const now = Date.now();
-        const progressValue = Math.floor(event.data.progress);
-        
-        // Always update if:
-        // 1. Sufficient time has passed since last update
-        // 2. We're approaching completion
-        // 3. The progress value has increased by at least 5 since last update
-        // 4. We've reached a new progress "step" (like 55, 60, 65)
-        if (now - lastProgressUpdate > PROGRESS_UPDATE_THROTTLE || 
-            event.data.progress >= 99 || 
-            (progressValue - lastProgressValue >= 5) ||
-            ([55, 60, 65, 70, 75, 80, 85, 90, 95].includes(progressValue) && progressValue > lastProgressValue)) {
+          if (event.data.version) localStorage.setItem('appVersion', event.data.version);
+          if (event.data.cacheName) localStorage.setItem('cacheName', event.data.cacheName);
+          console.log('[v0] Installation complete!');
+          break;
           
-          lastProgressUpdate = now;
-          lastProgressValue = progressValue;
+        case 'CACHE_STATUS':
+          // Service worker reports cache status with enhanced validation
+          const hasValidCache = event.data.isValid ?? (event.data.exists && event.data.itemCount >= 3);
+          console.log('[v0] SW cache status:', { 
+            exists: event.data.exists, 
+            count: event.data.itemCount, 
+            hasCritical: event.data.hasCriticalFiles,
+            isValid: event.data.isValid,
+            finalValid: hasValidCache 
+          });
           
-          // Update progress state with actual percentage
-          setCachingProgress(progressValue);
+          if (hasValidCache) {
+            setInstallStatus('installed');
+            localStorage.setItem('offlineModeEnabled', 'true');
+          } else {
+            setInstallStatus('not-installed');
+            localStorage.removeItem('offlineModeEnabled');
+          }
+          break;
           
-          console.log(`[v0] UI Progress updated: ${progressValue}%`);
+        case 'CACHE_ALL_FAILED':
+          handleInstallationFailure(event.data.error || 'Unknown error');
+          break;
           
-          // If an update is in progress but isInstalling isn't set, set it now
-          if (event.data.isAutoUpdate && !isInstalling) {
-            setIsInstalling(true);
+        case 'CACHING_PROGRESS':
+          const now = Date.now();
+          const progressValue = Math.floor(event.data.progress);
+          
+          if (now - lastProgressUpdate > PROGRESS_UPDATE_THROTTLE || 
+              event.data.progress >= 99 || 
+              progressValue - lastProgressValue >= 5) {
+            lastProgressUpdate = now;
+            lastProgressValue = progressValue;
+            setCachingProgress(progressValue);
+            
+            if (event.data.isAutoUpdate && !isInstalling) {
+              setIsInstalling(true);
+              setUpdateAvailable(true);
+            }
+          }
+          break;
+          
+        case 'VERSION_INFO':
+          const storedVersion = localStorage.getItem('appVersion');
+          if (storedVersion && storedVersion !== event.data.version) {
             setUpdateAvailable(true);
           }
-        }
-      } else if (event.data.type === 'VERSION_INFO') {
-        // Version info received - check if update needed
-        const newVersion = event.data.version;
-        const storedVersion = localStorage.getItem('appVersion');
-        
-        console.log(`[v0] Version check in component: Current=${newVersion}, Stored=${storedVersion}`);
-        
-        if (storedVersion && storedVersion !== newVersion) {
-          setUpdateAvailable(true);
-        }
-      } else if (event.data.type === 'UPDATE_LABEL_SET') {
-        // Update label received from service worker
-        console.log('[v0] Update label received:', event.data.label);
-        // Here we could store the label if needed for UI customization
+          break;
       }
     };
-    
-    const performInitialCheck = () => {
-      console.log('[v0] Performing initial installation check...');
-      
-      // Check localStorage flag first
-      const offlineModeEnabled = localStorage.getItem('offlineModeEnabled') === 'true';
-      console.log('[v0] offlineModeEnabled in localStorage:', offlineModeEnabled);
-      
-      // Check if service worker is active/controlling
-      const hasController = 'serviceWorker' in navigator && navigator.serviceWorker.controller;
-      console.log('[v0] Has active service worker controller:', hasController);
-      
-      // If both conditions are true, app is installed
-      if (offlineModeEnabled && hasController) {
-        console.log('[v0] ✓ App is installed (offline mode enabled + active SW)');
-        setIsInstalled(true);
-      } else if (offlineModeEnabled && !hasController) {
-        // Offline mode was enabled but no controller - verify with service worker
-        console.log('[v0] Offline mode enabled but no controller, requesting cache status verification');
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({
-            type: 'CHECK_CACHE_STATUS'
-          });
-        }
-      } else {
-        console.log('[v0] App is not installed');
-        setIsInstalled(false);
-      }
-      
-      // In all cases where offline mode was enabled, ensure service worker ready is available
-      if (offlineModeEnabled && 'serviceWorker' in navigator) {
-        navigator.serviceWorker.ready
-          .then(() => {
-            console.log('[v0] Service worker is ready');
-            // Request cache status for verification
-            if (navigator.serviceWorker.controller) {
-              navigator.serviceWorker.controller.postMessage({
-                type: 'CHECK_CACHE_STATUS'
-              });
-            }
-          })
-          .catch((error) => {
-            console.error('[v0] Service worker ready failed:', error);
-          });
-      }
-    };
-    
-    // Wait a bit for service worker to be ready, then perform check
-    installationCheckTimeout = setTimeout(() => {
-      performInitialCheck();
-    }, 500);
     
     navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
-    
-    return () => {
-      if (stateChangeTimeout) clearTimeout(stateChangeTimeout);
-      if (installationCheckTimeout) clearTimeout(installationCheckTimeout);
-      navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
-    };
-  }, []);
+    return () => navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+  }, [isInstalling]);
   
-  const checkOfflineStatus = () => {
-    // Check if we previously enabled offline mode
-    const offlineModeEnabled = localStorage.getItem('offlineModeEnabled') === 'true';
-    
-    if (offlineModeEnabled && 'serviceWorker' in navigator) {
-      navigator.serviceWorker.ready
-        .then(() => {
-          console.log('Service worker is ready, checking cache status');
-          setIsInstalled(true);
-          
-          // Double-check with the service worker about cache status
-          if (navigator.serviceWorker.controller) {
-            console.log('Sending CHECK_CACHE_STATUS message to service worker');
-            navigator.serviceWorker.controller.postMessage({
-              type: 'CHECK_CACHE_STATUS'
-            });
-          } else {
-            console.log('No active service worker controller found');
-          }
-        })
-        .catch((error) => {
-          // If service worker is not ready despite offlineModeEnabled flag
-          console.error('Service worker ready check failed:', error);
-          setIsInstalled(false);
-        });
-    } else {
-      setIsInstalled(false);
-    }
-  };
+  // Legacy function kept for compatibility
+  const checkOfflineStatus = useCallback(() => {
+    determineInstallStatus();
+  }, [determineInstallStatus]);
 
   
   const installServiceWorker = () => {
@@ -427,7 +425,7 @@ export function OfflineButton() {
         setTimeout(() => {
           clearInterval(connectionCheckInterval);
           
-          if (!isInstalled && isInstalling) {
+          if (installStatus !== 'installed' && isInstalling) {
             // Check if we're still online
             if (!navigator.onLine) {
               handleInstallationFailure('Problema de xarxa, torna-ho a intentar');
@@ -436,7 +434,7 @@ export function OfflineButton() {
             
             // Mark as complete - we'll let the service worker handle the actual final percentage
             console.log('Cache timeout reached, considering installation complete');
-            setIsInstalled(true);
+            setInstallStatus('installed');
             setIsInstalling(false);
             setUpdateAvailable(false);
             setCachingProgress(100);
@@ -539,9 +537,11 @@ export function OfflineButton() {
     .then(() => {
       // Reset offline state in localStorage
       localStorage.removeItem('offlineModeEnabled');
+      localStorage.removeItem('appVersion');
+      localStorage.removeItem('cacheName');
       
       // Reset component state
-      setIsInstalled(false);
+      setInstallStatus('not-installed');
       
       // Reset swipe state so it's ready if the dialog is reopened
       resetSwipeState();
@@ -717,15 +717,24 @@ export function OfflineButton() {
             <div className="flex flex-col items-center gap-4">
               {/* Status Indicator - Now at the top */}
               <div className={`w-full px-5 py-3 text-sm rounded-lg flex items-center justify-center gap-2 ${
-                isOffline 
-                  ? isInstalled
-                    ? 'bg-amber-100 text-amber-700' // Yellow: Offline + Downloaded
-                    : 'bg-red-100 text-red-700'     // Red: Offline + Not Downloaded
-                  : isInstalled 
-                    ? 'bg-green-100 text-green-700' // Green: Online + Downloaded
-                    : 'bg-blue-100 text-blue-700'   // Blue: Online + Not Downloaded
+                installStatus === 'checking' || installStatus === 'unknown'
+                  ? 'bg-gray-100 text-gray-600' // Gray: Checking status
+                  : isOffline 
+                    ? isInstalled
+                      ? 'bg-amber-100 text-amber-700' // Yellow: Offline + Downloaded
+                      : 'bg-red-100 text-red-700'     // Red: Offline + Not Downloaded
+                    : isInstalled 
+                      ? 'bg-green-100 text-green-700' // Green: Online + Downloaded
+                      : 'bg-blue-100 text-blue-700'   // Blue: Online + Not Downloaded
               }`}>
-                {isOffline ? (
+                {installStatus === 'checking' || installStatus === 'unknown' ? (
+                  <>
+                    <RefreshCw size={18} className="animate-spin" />
+                    <span className="font-medium">
+                      Comprovant estat...
+                    </span>
+                  </>
+                ) : isOffline ? (
                   <>
                     <WifiOff size={18} />
                     <span className="font-medium">
@@ -743,7 +752,16 @@ export function OfflineButton() {
               </div>
               
               {/* Install/Uninstall Button - Now below the status indicator */}
-              {isInstalled && !isInstalling ? (
+              {installStatus === 'checking' || installStatus === 'unknown' ? (
+                // Show disabled button while checking
+                <button
+                  disabled
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-gray-300 text-gray-500 cursor-not-allowed transition-all"
+                >
+                  <RefreshCw size={18} className="animate-spin" />
+                  <span className="font-medium">Comprovant...</span>
+                </button>
+              ) : isInstalled && !isInstalling ? (
                 <>
                   {/* Uninstall button - only shown when not updating */}
                   <button
