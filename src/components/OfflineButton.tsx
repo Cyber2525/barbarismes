@@ -102,6 +102,11 @@ export function OfflineButton() {
       console.log('Received message from Service Worker:', event.data);
       
       if (event.data.type === 'OFFLINE_READY' || event.data.type === 'CACHE_ALL_COMPLETE') {
+        setIsInstalled(true);
+        setIsInstalling(false);
+        setUpdateAvailable(false);
+        localStorage.setItem('offlineModeEnabled', 'true');
+        setCachingProgress(100);
         // Debounce the installed state change to avoid flickering
         if (stateChangeTimeout) clearTimeout(stateChangeTimeout);
         stateChangeTimeout = setTimeout(() => {
@@ -125,6 +130,7 @@ export function OfflineButton() {
           setIsInstalling(false);
         }
       } else if (event.data.type === 'CACHE_STATUS') {
+        setIsInstalled(event.data.exists && event.data.itemCount > 5);
         // Update installed state based on cache status
         const hasCache = event.data.exists && event.data.itemCount > 5;
         console.log('[v0] Cache status confirmed:', { exists: event.data.exists, itemCount: event.data.itemCount, hasCache });
@@ -245,6 +251,35 @@ export function OfflineButton() {
     };
   }, []);
   
+  const checkOfflineStatus = () => {
+    // Check if we previously enabled offline mode
+    const offlineModeEnabled = localStorage.getItem('offlineModeEnabled') === 'true';
+    
+    if (offlineModeEnabled && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.ready
+        .then(() => {
+          console.log('Service worker is ready, checking cache status');
+          setIsInstalled(true);
+          
+          // Double-check with the service worker about cache status
+          if (navigator.serviceWorker.controller) {
+            console.log('Sending CHECK_CACHE_STATUS message to service worker');
+            navigator.serviceWorker.controller.postMessage({
+              type: 'CHECK_CACHE_STATUS'
+            });
+          } else {
+            console.log('No active service worker controller found');
+          }
+        })
+        .catch((error) => {
+          // If service worker is not ready despite offlineModeEnabled flag
+          console.error('Service worker ready check failed:', error);
+          setIsInstalled(false);
+        });
+    } else {
+      setIsInstalled(false);
+    }
+  };
 
   
   const installServiceWorker = () => {
