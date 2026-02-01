@@ -1,0 +1,275 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-color: #C8102E; /* Catalan red */
+  --primary-light: #FFF3D1; /* Light yellow */
+  --secondary-color: #FFCD00; /* Catalan yellow/gold */
+  --offline-indicator: rgba(245, 158, 11, 0.15); /* Amber with low opacity */
+  --animation-duration: 200ms; /* Standard animation duration */
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #f9f9fb;
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+}
+
+/* Button animations */
+button {
+  transform: scale(1);
+  transition: transform var(--animation-duration) ease-in-out, background-color var(--animation-duration) ease !important;
+  user-select: none; /* Prevent text selection */
+  outline: none; /* Ensure no outline appears on any state */
+}
+
+button:hover:not(:disabled) {
+  transform: scale(1.02) !important;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.98) !important;
+}
+
+/* Modal animations */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes modalFadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+
+
+@keyframes modalBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalBackdropOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.modal-container {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: modalBackdropIn 200ms ease-out forwards;
+}
+
+.modal-container.exiting {
+  animation: modalBackdropOut 200ms ease-in forwards;
+}
+
+.modal-content {
+  max-width: 90%;
+  animation: modalFadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (min-width: 768px) {
+  .modal-content {
+    max-width: 360px;
+  }
+}
+
+.modal-content.exiting {
+  animation: modalFadeOut 200ms ease-in forwards;
+}
+
+/* Pronunciation examples styling */
+.pronunciation-example {
+  color: #b45309;
+  font-style: italic;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background-color: rgba(251, 191, 36, 0.1);
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Fix for text overflow in buttons and inputs */
+button, 
+.button-text {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: initial;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Additional helper for long text in flex containers */
+.whitespace-nowrap {
+  white-space: nowrap;
+}
+
+.whitespace-normal {
+  white-space: normal;
+}
+
+/* Pronunciation examples styling */
+.pronunciation-example {
+  color: #b45309;
+  font-style: italic;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background-color: rgba(251, 191, 36, 0.1);
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 13px;
+  }
+}
+
+/* Smooth transitions */
+button, 
+input, 
+.transition-all {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Remove focus styles for buttons but maintain focus for inputs */
+input:focus {
+  outline: none;
+  border: 1px solid var(--primary-color);
+}
+
+button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: inherit !important;
+}
+
+/* Remove all outline highlights when button is focused */
+button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #960c22;
+}
+
+/* Expandable content animations */
+.expandable-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(-10px);
+  will-change: max-height, opacity, transform;
+  pointer-events: none;
+}
+
+.expandable-content.expanded {
+  max-height: 1000px; /* Adjust based on max expected content height */
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Expandable content toggle icon animations */
+.toggle-icon {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: inline-flex;
+}
+
+.toggle-icon.rotated {
+  transform: rotate(180deg);
+}
+
+/* Fade in animation for newly appearing content */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Modal classes */
+.modal-open {
+  overflow: hidden;
+  touch-action: none;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+/* Modal dialogs */
+.modal-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem;
+}

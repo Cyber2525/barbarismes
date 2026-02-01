@@ -1,0 +1,16 @@
+{
+  "name": "Mots Correctes",
+  "short_name": "MotsCorrectes",
+  "description": "Aprèn a corregir barbarismes comuns en català",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFF3D1",
+  "theme_color": "#C8102E",
+  "icons": [
+    {
+      "src": "https://mocha-cdn.com/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
