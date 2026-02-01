@@ -160,7 +160,7 @@ if ('serviceWorker' in navigator) {
           .catch(err => {
             console.log('Network connectivity test failed:', err);
           });
-      }, 1000); // Slight delay to ensure stable connection
+      }, 100); // Slight delay to ensure stable connection
     }
   });
   
