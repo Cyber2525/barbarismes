@@ -17,34 +17,24 @@ export function OfflineButton() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Monitor online/offline status with debounce to prevent flickering
+  // Monitor online/offline status immediately without delay
   useEffect(() => {
-    let networkStatusTimeout: NodeJS.Timeout | null = null;
-    
     const handleOnlineStatus = () => {
-      // Clear any existing timeout to prevent rapid state changes
-      if (networkStatusTimeout) {
-        clearTimeout(networkStatusTimeout);
+      const isCurrentlyOffline = !navigator.onLine;
+      setIsOffline(isCurrentlyOffline);
+      
+      // Notify service worker about connectivity status
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'CONNECTIVITY_CHANGE',
+          offlineMode: isCurrentlyOffline
+        });
       }
       
-      // Debounce network status changes to prevent UI flickering
-      networkStatusTimeout = setTimeout(() => {
-        const isCurrentlyOffline = !navigator.onLine;
-        setIsOffline(isCurrentlyOffline);
-        
-        // Notify service worker about connectivity status
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({
-            type: 'CONNECTIVITY_CHANGE',
-            offlineMode: isCurrentlyOffline
-          });
-        }
-        
-        // If we go offline during installation, abort the process
-        if (isCurrentlyOffline && isInstalling) {
-          handleInstallationFailure("Connexió perduda. La instal·lació s'ha cancel·lat.");
-        }
-      }, 300);
+      // If we go offline during installation, abort the process
+      if (isCurrentlyOffline && isInstalling) {
+        handleInstallationFailure("Connexió perduda. La instal·lació s'ha cancel·lat.");
+      }
     };
     
     // Check initial status
@@ -78,9 +68,6 @@ export function OfflineButton() {
     window.addEventListener('app-update-needed', handleUpdateNeeded as EventListener);
     
     return () => {
-      if (networkStatusTimeout) {
-        clearTimeout(networkStatusTimeout);
-      }
       window.removeEventListener('online', handleOnlineStatus);
       window.removeEventListener('offline', handleOnlineStatus);
       window.removeEventListener('app-update-needed', handleUpdateNeeded as EventListener);
@@ -235,7 +222,7 @@ export function OfflineButton() {
     // Create a timeout to prevent hanging installation
     const installTimeout = setTimeout(() => {
       if (isInstalling) {
-        handleInstallationFailure('La instal·lació ha excedit el temps d\'espera');
+        handleInstallationFailure('La instal·lació ha excedit el temps d\\'espera');
       }
     }, 45000); // 45 second timeout for larger downloads
     
@@ -370,7 +357,7 @@ export function OfflineButton() {
       } else {
         // No toast notifications to handle
                   
-                  handleInstallationFailure('No s\'ha pogut activar el service worker. Recarrega la pàgina i torna-ho a provar.');
+                  handleInstallationFailure('No s\\'ha pogut activar el service worker. Recarrega la pàgina i torna-ho a provar.');
       }
     }, 1000);
   };
