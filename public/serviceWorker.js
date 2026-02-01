@@ -592,27 +592,64 @@ self.addEventListener('message', (event) => {
   // Check cache status
   if (event.data.type === 'CHECK_CACHE_STATUS') {
     caches.has(CACHE_NAME)
-      .then(hasCache => {
+      .then(async hasCache => {
         if (hasCache) {
-          caches.open(CACHE_NAME)
-            .then(cache => cache.keys())
-            .then(keys => {
-              const itemCount = keys.length;
-              console.log(`Cache exists with ${itemCount} items`);
-              event.source.postMessage({
-                type: 'CACHE_STATUS',
-                exists: true,
-                itemCount: itemCount
-              });
-            });
+          const cache = await caches.open(CACHE_NAME);
+          const keys = await cache.keys();
+          const itemCount = keys.length;
+          
+          // Verify critical files exist
+          const criticalUrls = ['/', '/index.html', '/manifest.json'];
+          const cachedPaths = keys.map(req => new URL(req.url).pathname);
+          const hasCriticalFiles = criticalUrls.every(url => 
+            cachedPaths.includes(url) || cachedPaths.some(p => p.endsWith(url))
+          );
+          
+          // Valid if we have 3+ items AND critical files
+          const isValid = itemCount >= 3 && hasCriticalFiles;
+          
+          console.log(`Cache status: ${itemCount} items, critical files: ${hasCriticalFiles}, valid: ${isValid}`);
+          
+          event.source.postMessage({
+            type: 'CACHE_STATUS',
+            exists: true,
+            itemCount: itemCount,
+            hasCriticalFiles: hasCriticalFiles,
+            isValid: isValid
+          });
         } else {
           console.log('Cache does not exist');
           event.source.postMessage({
             type: 'CACHE_STATUS',
             exists: false,
-            itemCount: 0
+            itemCount: 0,
+            hasCriticalFiles: false,
+            isValid: false
           });
         }
+      })
+      .catch(error => {
+        console.error('Error checking cache status:', error);
+        event.source.postMessage({
+          type: 'CACHE_STATUS',
+          exists: false,
+          itemCount: 0,
+          hasCriticalFiles: false,
+          isValid: false,
+          error: error.message
+        });
       });
+  }
+  
+  // Handle SKIP_WAITING message
+  if (event.data.type === 'SKIP_WAITING') {
+    console.log('Service Worker: Received SKIP_WAITING message');
+    self.skipWaiting();
+  }
+  
+  // Handle CLAIM_CLIENTS message
+  if (event.data.type === 'CLAIM_CLIENTS') {
+    console.log('Service Worker: Received CLAIM_CLIENTS message');
+    self.clients.claim();
   }
 });

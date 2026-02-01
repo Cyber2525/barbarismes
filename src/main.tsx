@@ -3,70 +3,80 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
+// Cache name for direct verification
+const EXPECTED_CACHE_NAME = 'mots-correctes-cache-v4';
+
+// Verify cache directly without relying on service worker
+async function verifyCacheExists(): Promise<boolean> {
+  try {
+    if (!('caches' in window)) return false;
+    const hasCache = await caches.has(EXPECTED_CACHE_NAME);
+    if (!hasCache) return false;
+    const cache = await caches.open(EXPECTED_CACHE_NAME);
+    const keys = await cache.keys();
+    return keys.length >= 3;
+  } catch {
+    return false;
+  }
+}
+
 // Initialize service worker if it's enabled
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    // Check if offline mode was enabled previously
-    const offlineModeEnabled = localStorage.getItem('offlineModeEnabled') === 'true';
-    console.log('[v0] Page loaded. Offline mode enabled:', offlineModeEnabled);
+  // Check cache and localStorage on load
+  window.addEventListener('load', async () => {
+    const localStorageFlag = localStorage.getItem('offlineModeEnabled') === 'true';
+    const cacheExists = await verifyCacheExists();
     
-    if (offlineModeEnabled) {
-      console.log('[v0] Offline mode previously enabled, registering service worker...');
+    console.log('[v0] Page loaded. localStorage flag:', localStorageFlag, 'Cache exists:', cacheExists);
+    
+    // Sync localStorage with actual cache state
+    if (cacheExists && !localStorageFlag) {
+      console.log('[v0] Cache exists but localStorage flag missing - setting flag');
+      localStorage.setItem('offlineModeEnabled', 'true');
+    } else if (!cacheExists && localStorageFlag) {
+      console.log('[v0] localStorage flag set but cache missing - clearing flag');
+      localStorage.removeItem('offlineModeEnabled');
+    }
+    
+    // Only register service worker if we have cache or flag
+    const shouldRegister = cacheExists || localStorageFlag;
+    
+    if (shouldRegister) {
+      console.log('[v0] Registering service worker...');
       
-      // Register with a slight delay to ensure page has loaded
-      setTimeout(() => {
-        try {
-          navigator.serviceWorker.register('/serviceWorker.js', {
-            scope: '/',
-            updateViaCache: 'none' // Don't use cached version of service worker
-          })
-            .then(registration => {
-              console.log('[v0] Service Worker registered with scope:', registration.scope);
-              
-              // Check if we need to update
-              if (registration.waiting) {
-                console.log('[v0] New service worker waiting');
-                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-              }
-              
-              // Force service worker to claim this client
-              if (registration.active) {
-                console.log('[v0] Active service worker found, requesting claim');
-                registration.active.postMessage({ type: 'CLAIM_CLIENTS' });
-              }
-              
-              // Verify cache status after registration
-              setTimeout(() => {
-                if (navigator.serviceWorker.controller) {
-                  console.log('[v0] Sending CHECK_CACHE_STATUS to verify installation');
-                  navigator.serviceWorker.controller.postMessage({
-                    type: 'CHECK_CACHE_STATUS'
-                  });
-                }
-              }, 300);
-              
-              console.log('[v0] Service worker registered, automatic updates will run when online');
-            })
-            .catch(error => {
-              console.error('[v0] Service Worker registration failed:', error);
-              // Remove the offline mode flag if registration fails
-              localStorage.removeItem('offlineModeEnabled');
-            });
-        } catch (error) {
-          console.error('[v0] Error during service worker registration:', error);
-          // Prevent the error from blocking app initialization
-          localStorage.removeItem('offlineModeEnabled');
+      try {
+        const registration = await navigator.serviceWorker.register('/serviceWorker.js', {
+          scope: '/',
+          updateViaCache: 'none'
+        });
+        
+        console.log('[v0] Service Worker registered with scope:', registration.scope);
+        
+        // Handle waiting service worker
+        if (registration.waiting) {
+          console.log('[v0] New service worker waiting - activating');
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
         }
-      }, 1000);
+        
+        // Force claim
+        if (registration.active) {
+          console.log('[v0] Active service worker found');
+          registration.active.postMessage({ type: 'CLAIM_CLIENTS' });
+        }
+        
+        // Listen for controller change
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('[v0] Service worker controller changed');
+        });
+        
+      } catch (error) {
+        console.error('[v0] Service Worker registration failed:', error);
+        // Don't clear flag on registration failure - cache might still be valid
+      }
     } else {
       console.log('[v0] Offline mode not enabled. User can enable it via the download button.');
     }
   });
-  
-  // This function is no longer needed as we directly trigger updates when coming online
-  const checkAppVersion = () => {
-    console.log('App version check replaced with automatic updates');
-  };
   
   // Listen for service worker messages
   navigator.serviceWorker.addEventListener('message', (event) => {
@@ -81,8 +91,11 @@ if ('serviceWorker' in navigator) {
     else if (event.data.type === 'CACHE_STATUS') {
       // Cache status report - sync with component
       console.log('[v0] Cache status received:', { exists: event.data.exists, itemCount: event.data.itemCount });
-      if (event.data.exists && event.data.itemCount > 5) {
+      // Only need 3+ items (/, /index.html, /manifest.json minimum)
+      if (event.data.exists && event.data.itemCount >= 3) {
         localStorage.setItem('offlineModeEnabled', 'true');
+      } else {
+        localStorage.removeItem('offlineModeEnabled');
       }
     }
     else if (event.data.type === 'VERSION_INFO' || event.data.type === 'CACHE_VALIDATION') {
@@ -186,49 +199,8 @@ if ('serviceWorker' in navigator) {
     }
   });
   
-  // Trigger update when page is fully loaded
-  window.addEventListener('load', () => {
-    console.log('Page fully loaded, checking for updates');
-    // Only run if we're online and offline mode is enabled
-    if (navigator.onLine && localStorage.getItem('offlineModeEnabled') === 'true') {
-      console.log('Triggering automatic update on page load');
-      
-      // Short delay to ensure everything is properly initialized
-      setTimeout(() => {
-        // Test connectivity before update
-        fetch('/', { method: 'HEAD', cache: 'no-store' })
-          .then(() => {
-            console.log('Page load update: Network connectivity confirmed');
-            if (navigator.serviceWorker.controller) {
-              // Notify UI that update is starting
-              window.dispatchEvent(new CustomEvent('auto-update-started', {
-                detail: { trigger: 'page-load', label: 'Actualitzant' }
-              }));
-              
-              // Start the update process with dynamic progress tracking
-              navigator.serviceWorker.controller.postMessage({
-                type: 'CACHE_ALL',
-                isAutoUpdate: true,
-                updateLabel: 'Actualitzant'
-              });
-              
-              // Dispatch event to update UI
-              window.dispatchEvent(new CustomEvent('auto-update-started', {
-                detail: { 
-                  label: 'Actualitzant',
-                  trigger: 'automatic'
-                }
-              }));
-              
-              console.log('Automatic update initiated on page load');
-            }
-          })
-          .catch(err => {
-            console.log('Page load update: Network test failed', err);
-          });
-      }, 1500);
-    }
-  });
+  // Note: Auto-update on page load is now handled in the main load event above
+  // This prevents duplicate updates and race conditions
   
   window.addEventListener('offline', () => {
     console.log('App is offline');
