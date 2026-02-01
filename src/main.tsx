@@ -7,8 +7,11 @@ import './index.css'
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Check if offline mode was enabled previously
-    if (localStorage.getItem('offlineModeEnabled') === 'true') {
-      console.log('Offline mode previously enabled, registering service worker...');
+    const offlineModeEnabled = localStorage.getItem('offlineModeEnabled') === 'true';
+    console.log('[v0] Page loaded. Offline mode enabled:', offlineModeEnabled);
+    
+    if (offlineModeEnabled) {
+      console.log('[v0] Offline mode previously enabled, registering service worker...');
       
       // Register with a slight delay to ensure page has loaded
       setTimeout(() => {
@@ -18,35 +21,45 @@ if ('serviceWorker' in navigator) {
             updateViaCache: 'none' // Don't use cached version of service worker
           })
             .then(registration => {
-              console.log('Service Worker registered with scope:', registration.scope);
+              console.log('[v0] Service Worker registered with scope:', registration.scope);
               
               // Check if we need to update
               if (registration.waiting) {
-                console.log('New service worker waiting');
+                console.log('[v0] New service worker waiting');
                 registration.waiting.postMessage({ type: 'SKIP_WAITING' });
               }
               
               // Force service worker to claim this client
               if (registration.active) {
+                console.log('[v0] Active service worker found, requesting claim');
                 registration.active.postMessage({ type: 'CLAIM_CLIENTS' });
               }
               
-              // We no longer check versions, instead update automatically when online
-              console.log('Service worker registered, automatic updates will run when online');
+              // Verify cache status after registration
+              setTimeout(() => {
+                if (navigator.serviceWorker.controller) {
+                  console.log('[v0] Sending CHECK_CACHE_STATUS to verify installation');
+                  navigator.serviceWorker.controller.postMessage({
+                    type: 'CHECK_CACHE_STATUS'
+                  });
+                }
+              }, 300);
+              
+              console.log('[v0] Service worker registered, automatic updates will run when online');
             })
             .catch(error => {
-              console.error('Service Worker registration failed:', error);
+              console.error('[v0] Service Worker registration failed:', error);
               // Remove the offline mode flag if registration fails
               localStorage.removeItem('offlineModeEnabled');
             });
         } catch (error) {
-          console.error('Error during service worker registration:', error);
+          console.error('[v0] Error during service worker registration:', error);
           // Prevent the error from blocking app initialization
           localStorage.removeItem('offlineModeEnabled');
         }
       }, 1000);
     } else {
-      console.log('Offline mode not enabled. User can enable it via the download button.');
+      console.log('[v0] Offline mode not enabled. User can enable it via the download button.');
     }
   });
   
@@ -59,11 +72,18 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
     if (!event.data) return;
     
-    console.log('Received message from service worker:', event.data.type);
+    console.log('[v0] Received message from service worker:', event.data.type);
     
     if (event.data.type === 'OFFLINE_READY') {
-      console.log('Received OFFLINE_READY message from service worker');
+      console.log('[v0] Received OFFLINE_READY message from service worker');
       localStorage.setItem('offlineModeEnabled', 'true');
+    }
+    else if (event.data.type === 'CACHE_STATUS') {
+      // Cache status report - sync with component
+      console.log('[v0] Cache status received:', { exists: event.data.exists, itemCount: event.data.itemCount });
+      if (event.data.exists && event.data.itemCount > 5) {
+        localStorage.setItem('offlineModeEnabled', 'true');
+      }
     }
     else if (event.data.type === 'VERSION_INFO' || event.data.type === 'CACHE_VALIDATION') {
       // Store the current version info
@@ -73,9 +93,9 @@ if ('serviceWorker' in navigator) {
       const installedVersion = localStorage.getItem('appVersion');
       const currentCacheName = localStorage.getItem('cacheName');
       
-      console.log(`Version check: Current=${newVersion}, Installed=${installedVersion}`);
-      console.log(`Cache check: Current=${newCacheName}, Installed=${currentCacheName}`);
-      console.log(`Cache integrity: ${cacheIntegrityStatus}`);
+      console.log(`[v0] Version check: Current=${newVersion}, Installed=${installedVersion}`);
+      console.log(`[v0] Cache check: Current=${newCacheName}, Installed=${currentCacheName}`);
+      console.log(`[v0] Cache integrity: ${cacheIntegrityStatus}`);
       
       // Save new version info
       localStorage.setItem('appVersion', newVersion);
@@ -86,13 +106,13 @@ if ('serviceWorker' in navigator) {
           (currentCacheName && currentCacheName !== newCacheName) ||
           cacheIntegrityStatus === 'invalid' || 
           event.data.missingFiles) {
-        console.log('Version, cache mismatch, or incomplete cache detected, triggering reinstall');
+        console.log('[v0] Version, cache mismatch, or incomplete cache detected, triggering reinstall');
         
         // Mark that we detected an update this session
         localStorage.setItem('updateDetectedThisSession', 'true');
         
         // Dispatch custom event to trigger automatic reinstall
-        console.log('Update needed, dispatching update event');
+        console.log('[v0] Update needed, dispatching update event');
         window.dispatchEvent(new CustomEvent('app-update-needed', {
           detail: {
             oldVersion: installedVersion,
@@ -114,6 +134,8 @@ if ('serviceWorker' in navigator) {
       if (event.data.cacheName) {
         localStorage.setItem('cacheName', event.data.cacheName);
       }
+      // Ensure offline mode is enabled after successful cache
+      localStorage.setItem('offlineModeEnabled', 'true');
     }
   });
   
