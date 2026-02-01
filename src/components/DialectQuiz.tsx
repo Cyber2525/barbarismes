@@ -388,16 +388,28 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
               bgClass = 'bg-red-50 border-red-300'; // Selected but not yet answered
             }
             
-            // Determine circle color
+            // Determine circle color and icon
             let circleClass = 'border-gray-300';
+            let icon = null;
+            
             if (answered) {
-              if (isCorrectOption) {
-                circleClass = 'bg-green-600 border-green-600 text-white'; // Correct options get green circle
-              } else if (isSelected) {
-                circleClass = 'bg-red-600 border-red-600 text-white'; // Selected incorrect get red circle
+              if (isCorrectOption && isSelected) {
+                // Correct and selected: green circle with check
+                circleClass = 'bg-green-600 border-green-600 text-white';
+                icon = quizMode === 'single' ? <ChevronRight size={14} /> : <Check size={14} />;
+              } else if (isCorrectOption && !isSelected) {
+                // Correct but not selected: green circle, no icon
+                circleClass = 'bg-green-600 border-green-600 text-white';
+                icon = null;
+              } else if (!isCorrectOption && isSelected) {
+                // Incorrect and selected: red circle with X
+                circleClass = 'bg-red-600 border-red-600 text-white';
+                icon = <X size={14} />;
               }
             } else if (isSelected) {
-              circleClass = 'bg-red-600 border-red-600 text-white'; // Selected but not yet answered
+              // Not answered yet but selected: red circle with check
+              circleClass = 'bg-red-600 border-red-600 text-white';
+              icon = quizMode === 'single' ? <ChevronRight size={14} /> : <Check size={14} />;
             }
             
             return (
@@ -408,9 +420,7 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
               >
                 <div className="flex items-center">
                   <div className={`w-6 h-6 flex-shrink-0 rounded-full border mr-3 flex items-center justify-center ${circleClass}`}>
-                    {(isSelected || (answered && isCorrectOption)) && (
-                      quizMode === 'single' ? <ChevronRight size={14} /> : <Check size={14} />
-                    )}
+                    {icon}
                   </div>
                   <span className="text-gray-800">{option}</span>
                 </div>
