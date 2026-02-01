@@ -11,6 +11,7 @@ if ('serviceWorker' in navigator) {
       console.log('Offline mode previously enabled, registering service worker...');
       
       // Register with a slight delay to ensure page has loaded
+      // CHANGED: Reduced from 1000 to 100 for faster registration
       setTimeout(() => {
         try {
           navigator.serviceWorker.register('/serviceWorker.js', {
@@ -44,7 +45,7 @@ if ('serviceWorker' in navigator) {
           // Prevent the error from blocking app initialization
           localStorage.removeItem('offlineModeEnabled');
         }
-      }, 1000);
+      }, 100);
     } else {
       console.log('Offline mode not enabled. User can enable it via the download button.');
     }
@@ -135,6 +136,7 @@ if ('serviceWorker' in navigator) {
       console.log('App came online - initiating automatic update');
       
       // Automatic update on every online reconnection
+      // CHANGED: Reduced from 1000 to 100 for faster reaction
       setTimeout(() => {
         // First perform a fetch to ensure the connection is really established
         fetch('/', { method: 'HEAD', cache: 'no-store' })
