@@ -47,7 +47,7 @@ export function App() {
   // Single study mode state for both content types
   const [isStudyMode, setIsStudyMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('isStudyMode');
-    return saved === 'true';
+    return saved === 'false' ? false : true;
   });
   
   // Save study mode to localStorage when it changes
@@ -299,17 +299,6 @@ export function App() {
           {/* Mode Selector - Show for both sections */}
           <div className="flex items-center justify-center flex-row space-x-2 md:space-x-4 w-full md:w-auto">
             <button 
-              onClick={() => setIsStudyMode(false)} 
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                !isStudyMode 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-white text-red-600 hover:bg-red-50'
-              }`}
-            >
-              <Pencil size={18} />
-              <span>Mode Quiz</span>
-            </button>
-            <button 
               onClick={() => setIsStudyMode(true)} 
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
                 isStudyMode 
@@ -319,6 +308,17 @@ export function App() {
             >
               <BookOpen size={18} />
               <span>Mode Estudi</span>
+            </button>
+            <button 
+              onClick={() => setIsStudyMode(false)} 
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                !isStudyMode 
+                  ? 'bg-red-600 text-white' 
+                  : 'bg-white text-red-600 hover:bg-red-50'
+              }`}
+            >
+              <Pencil size={18} />
+              <span>Mode Quiz</span>
             </button>
           </div>
         </header>
