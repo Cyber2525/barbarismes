@@ -263,10 +263,10 @@ export function App() {
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-red-100 py-6 md:py-8 px-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
       <div className="container mx-auto">
         <header className="flex flex-col items-center justify-between mb-6 md:mb-8">
-          <div className="flex items-center mb-4 w-full justify-center md:justify-between">
-            <div className="text-center md:text-left">
-              <h1 className="text-2xl md:text-3xl font-bold text-red-800">Català Correcte</h1>
-              <p className="text-sm md:text-base text-red-600">Aprèn català amb les nostres eines</p>
+          <div className="flex items-center mb-4 w-full justify-center">
+            <div className="text-center">
+              <h1 className="text-2xl md:text-3xl font-bold text-red-800">Estudiar Català CSI</h1>
+              <p className="text-sm md:text-base text-red-600">SACA UN 10 EN CATALAN</p>
             </div>
           </div>
           
