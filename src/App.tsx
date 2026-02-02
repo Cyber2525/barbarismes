@@ -12,7 +12,7 @@ import { StudySheet } from './components/StudySheet';
 import { DialectStudySheet } from './components/DialectStudySheet';
 import { DialectQuiz } from './components/DialectQuiz';
 import { OfflineButton } from './components/OfflineButton';
-import { BookOpen, Globe, Languages, Menu, Pencil, X } from 'lucide-react';
+import { BookOpen, Globe, Languages, Pencil } from 'lucide-react';
 
 // Default quiz size
 const DEFAULT_QUIZ_SIZE = 20;
@@ -20,7 +20,7 @@ const DEFAULT_QUIZ_SIZE = 20;
 export function App() {
   const [appSection, setAppSection] = useState<'barbarismes' | 'dialectes'>(() => {
     const savedSection = localStorage.getItem('appSection');
-    return (savedSection as 'barbarismes' | 'dialectes') || 'barbarismes';
+    return (savedSection as 'barbarismes' | 'dialectes') || 'dialectes';
   });
 
   const [quizSize, setQuizSize] = useState<number>(() => {
@@ -47,15 +47,13 @@ export function App() {
   // Single study mode state for both content types
   const [isStudyMode, setIsStudyMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('isStudyMode');
-    return saved === 'true';
+    return saved !== null ? saved === 'true' : true;
   });
   
   // Save study mode to localStorage when it changes
   useEffect(() => {
     localStorage.setItem('isStudyMode', isStudyMode.toString());
   }, [isStudyMode]);
-  
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Load fonts
   useEffect(() => {
@@ -265,35 +263,15 @@ export function App() {
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-red-100 py-6 md:py-8 px-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
       <div className="container mx-auto">
         <header className="flex flex-col items-center justify-between mb-6 md:mb-8">
-          <div className="flex items-center mb-4 w-full justify-between">
-            <div className="flex items-center">
-              <button 
-                className="md:hidden mr-3 p-2 text-red-800 hover:bg-red-100 rounded-lg"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                aria-label="Menu"
-              >
-                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
-              <div className="text-center md:text-left">
-                <h1 className="text-2xl md:text-3xl font-bold text-red-800">Català Correcte</h1>
-                <p className="text-sm md:text-base text-red-600 text-left">Aprèn català amb les nostres eines</p>
-              </div>
+          <div className="flex items-center mb-4 w-full justify-center md:justify-between">
+            <div className="text-center md:text-left">
+              <h1 className="text-2xl md:text-3xl font-bold text-red-800">Català Correcte</h1>
+              <p className="text-sm md:text-base text-red-600">Aprèn català amb les nostres eines</p>
             </div>
           </div>
           
           {/* App Section Selector */}
           <div className="flex flex-wrap justify-center gap-3 mb-4 w-full">
-            <button 
-              onClick={() => setAppSection('barbarismes')} 
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg transition-colors ${
-                appSection === 'barbarismes' 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
-              }`}
-            >
-              <Languages size={18} />
-              <span>Barbarismes</span>
-            </button>
             <button 
               onClick={() => setAppSection('dialectes')} 
               className={`flex items-center gap-2 px-5 py-2 rounded-lg transition-colors ${
@@ -305,21 +283,21 @@ export function App() {
               <Globe size={18} />
               <span>Dialectes</span>
             </button>
+            <button 
+              onClick={() => setAppSection('barbarismes')} 
+              className={`flex items-center gap-2 px-5 py-2 rounded-lg transition-colors ${
+                appSection === 'barbarismes' 
+                  ? 'bg-red-600 text-white' 
+                  : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
+              }`}
+            >
+              <Languages size={18} />
+              <span>Barbarismes</span>
+            </button>
           </div>
           
           {/* Mode Selector - Show for both sections */}
-          <div className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex items-center justify-center flex-row space-x-2 md:space-x-4 w-full md:w-auto`}>
-            <button 
-              onClick={() => setIsStudyMode(false)} 
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                !isStudyMode 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-white text-red-600 hover:bg-red-50'
-              }`}
-            >
-              <Pencil size={18} />
-              <span>Mode Quiz</span>
-            </button>
+          <div className="flex items-center justify-center flex-row space-x-2 md:space-x-4 w-full md:w-auto">
             <button 
               onClick={() => setIsStudyMode(true)} 
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
@@ -330,6 +308,17 @@ export function App() {
             >
               <BookOpen size={18} />
               <span>Mode Estudi</span>
+            </button>
+            <button 
+              onClick={() => setIsStudyMode(false)} 
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                !isStudyMode 
+                  ? 'bg-red-600 text-white' 
+                  : 'bg-white text-red-600 hover:bg-red-50'
+              }`}
+            >
+              <Pencil size={18} />
+              <span>Mode Quiz</span>
             </button>
           </div>
         </header>

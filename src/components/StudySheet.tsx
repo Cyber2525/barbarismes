@@ -455,7 +455,7 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
             onClick={onBack}
             className="px-3 py-2 bg-white rounded-lg shadow-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-100 hover:text-red-700 transition-colors"
           >
-            Torna al Quiz
+            Anar al Quiz
           </button>
         </div>
       )}
