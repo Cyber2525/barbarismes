@@ -8,6 +8,31 @@
   --secondary-color: #FFCD00; /* Catalan yellow/gold */
   --offline-indicator: rgba(245, 158, 11, 0.15); /* Amber with low opacity */
   --animation-duration: 200ms; /* Standard animation duration */
+  
+  /* Light mode colors */
+  --bg-primary: #f9f9fb;
+  --bg-gradient-from: rgb(254, 252, 232); /* yellow-50 */
+  --bg-gradient-to: rgb(254, 226, 226); /* red-100 */
+  --text-primary: #1f2937; /* gray-800 */
+  --text-secondary: #4b5563; /* gray-600 */
+  --card-bg: #ffffff;
+  --border-color: rgba(200, 16, 46, 0.2);
+}
+
+.dark {
+  --primary-color: #E6223D; /* Brighter red for dark mode */
+  --primary-light: #3D3420; /* Darker yellow tone */
+  --secondary-color: #FFD700; /* Brighter gold */
+  --offline-indicator: rgba(251, 191, 36, 0.2);
+  
+  /* Dark mode colors */
+  --bg-primary: #0f172a; /* slate-900 */
+  --bg-gradient-from: #1e293b; /* slate-800 */
+  --bg-gradient-to: #450a0f; /* dark red tone */
+  --text-primary: #f1f5f9; /* slate-100 */
+  --text-secondary: #cbd5e1; /* slate-300 */
+  --card-bg: #1e293b; /* slate-800 */
+  --border-color: rgba(230, 34, 61, 0.3);
 }
 
 html {
