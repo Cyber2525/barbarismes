@@ -125,19 +125,19 @@ export function DialectStudySheet({ onBack }: DialectStudySheetProps) {
   const occidentalCount = filteredItems.filter(item => item.group === 'occidental').length;
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white dark:bg-slate-800 rounded-lg shadow-md p-4 md:p-6 transition-colors duration-300">
+    <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-md p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl md:text-2xl font-bold text-red-800 dark:text-red-400 transition-colors duration-300">Dialectes Catalans</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-red-800">Dialectes Catalans</h2>
       </div>
       
       {/* Dialect Group Selector */}
       <div className="flex flex-wrap justify-center gap-2 mb-6">
         <button
           onClick={() => setSelectedGroup(undefined)}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
             !selectedGroup 
-              ? 'bg-red-600 dark:bg-red-500 text-white' 
-              : 'bg-white dark:bg-slate-700 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-slate-600'
+              ? 'bg-red-600 text-white' 
+              : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
           }`}
         >
           <Globe size={16} />
@@ -147,10 +147,10 @@ export function DialectStudySheet({ onBack }: DialectStudySheetProps) {
           <button
             key={group.id}
             onClick={() => setSelectedGroup(group.id)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
               selectedGroup === group.id 
-                ? 'bg-red-600 dark:bg-red-500 text-white' 
-                : 'bg-white dark:bg-slate-700 text-red-600 dark:text-red-300 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-slate-600'
+                ? 'bg-red-600 text-white' 
+                : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
             }`}
           >
             <Book size={16} />
@@ -166,13 +166,13 @@ export function DialectStudySheet({ onBack }: DialectStudySheetProps) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Cerca dialectes, característiques o exemples..."
-            className="w-full px-4 py-3 pl-10 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:border-red-500 focus:ring-red-300 focus:outline-none transition-colors duration-300"
+            className="w-full px-4 py-3 pl-10 rounded-lg border border-gray-300 focus:border-red-500 focus:ring-red-300 focus:outline-none"
           />
           <Search className="absolute left-3 top-3.5 text-gray-400" size={18} />
           {searchTerm && (
             <button 
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
             >
               <X size={18} />
             </button>
@@ -182,10 +182,10 @@ export function DialectStudySheet({ onBack }: DialectStudySheetProps) {
         <div>
           <button
             onClick={() => setFilterExpanded(!filterExpanded)}
-            className={`flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg transition-all duration-300 ${
+            className={`flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg transition-colors ${
               filterExpanded 
-                ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' 
-                : 'bg-gray-50 dark:bg-slate-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-600'
+                ? 'bg-red-100 text-red-700' 
+                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
             }`}
           >
             <SlidersHorizontal size={16} />
@@ -194,16 +194,16 @@ export function DialectStudySheet({ onBack }: DialectStudySheetProps) {
           </button>
           
           {filterExpanded && (
-            <div className="mt-2 p-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-sm transition-colors duration-300">
-              <h4 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-3 transition-colors duration-300">Ordenar per:</h4>
+            <div className="mt-2 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+              <h4 className="text-md font-semibold text-gray-800 mb-3">Ordenar per:</h4>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 mb-4">
                 <button
                   onClick={() => setSortBy('alphabetical')}
-                  className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-all duration-300 ${
+                  className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-colors ${
                     sortBy === 'alphabetical' 
-                      ? 'bg-red-600 dark:bg-red-500 text-white' 
-                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      ? 'bg-red-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   <ArrowDownAZ size={16} />
@@ -212,10 +212,10 @@ export function DialectStudySheet({ onBack }: DialectStudySheetProps) {
                 
                 <button
                   onClick={() => setSortBy('group')}
-                  className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-all duration-300 ${
+                  className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-colors ${
                     sortBy === 'group' 
-                      ? 'bg-red-600 dark:bg-red-500 text-white' 
-                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      ? 'bg-red-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   <BookOpen size={16} />
@@ -224,10 +224,10 @@ export function DialectStudySheet({ onBack }: DialectStudySheetProps) {
                 
                 <button
                   onClick={() => setSortBy('region')}
-                  className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-all duration-300 ${
+                  className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-colors ${
                     sortBy === 'region' 
-                      ? 'bg-red-600 dark:bg-red-500 text-white' 
-                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      ? 'bg-red-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   <Map size={16} />
@@ -239,10 +239,10 @@ export function DialectStudySheet({ onBack }: DialectStudySheetProps) {
                     setSortBy('random');
                     refreshRandomOrder();
                   }}
-                  className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-all duration-300 ${
+                  className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-colors ${
                     sortBy === 'random' 
-                      ? 'bg-red-600 dark:bg-red-500 text-white' 
-                      : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600'
+                      ? 'bg-red-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
                   <RefreshCw size={16} className={sortBy === 'random' ? 'animate-spin' : ''} />
@@ -253,21 +253,21 @@ export function DialectStudySheet({ onBack }: DialectStudySheetProps) {
               {sortBy === 'random' && (
                 <button
                   onClick={refreshRandomOrder}
-                  className="flex items-center gap-2 py-1.5 px-3 text-sm rounded-md bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300 hover:bg-yellow-200 dark:hover:bg-yellow-800/50 transition-all duration-300"
+                  className="flex items-center gap-2 py-1.5 px-3 text-sm rounded-md bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition-colors"
                 >
                   <RefreshCw size={14} />
                   <span>Reordenar aleatòriament</span>
                 </button>
               )}
               
-              <div className="flex flex-wrap gap-2 mt-4 text-xs text-gray-500 dark:text-gray-400">
-                <div className="px-2 py-1 bg-gray-100 dark:bg-slate-700 rounded-full transition-colors duration-300">
+              <div className="flex flex-wrap gap-2 mt-4 text-xs text-gray-500">
+                <div className="px-2 py-1 bg-gray-100 rounded-full">
                   Total: {totalItems} dialectes
                 </div>
-                <div className="px-2 py-1 bg-red-50 dark:bg-red-900/40 text-red-600 dark:text-red-300 rounded-full transition-colors duration-300">
+                <div className="px-2 py-1 bg-red-50 text-red-600 rounded-full">
                   Bloc Oriental: {orientalCount}
                 </div>
-                <div className="px-2 py-1 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 rounded-full transition-colors duration-300">
+                <div className="px-2 py-1 bg-blue-50 text-blue-600 rounded-full">
                   Bloc Occidental: {occidentalCount}
                 </div>
               </div>
@@ -279,7 +279,7 @@ export function DialectStudySheet({ onBack }: DialectStudySheetProps) {
       <div className="space-y-6">
         {Object.keys(groupedData).length === 0 ? (
           <div className="text-center py-10">
-            <p className="text-gray-500 dark:text-gray-400 transition-colors duration-300">No s'han trobat resultats amb aquests criteris de cerca.</p>
+            <p className="text-gray-500">No s'han trobat resultats amb aquests criteris de cerca.</p>
           </div>
         ) : (
           Object.entries(groupedData).map(([groupId, items]) => (
@@ -287,7 +287,7 @@ export function DialectStudySheet({ onBack }: DialectStudySheetProps) {
               <div key={groupId} id={`group-${groupId}`} className="scroll-mt-4">
                 {/* Show group heading for grouped view */}
                 {isGroupedView && groupId !== 'all' && (
-                  <h3 className="text-lg font-bold text-red-700 dark:text-red-400 border-b border-red-200 dark:border-red-800 pb-1 mb-3 transition-colors duration-300">
+                  <h3 className="text-lg font-bold text-red-700 border-b border-red-200 pb-1 mb-3">
                     {getGroupById(groupId)?.name || "Grup sense nom"}
                   </h3>
                 )}
@@ -296,33 +296,33 @@ export function DialectStudySheet({ onBack }: DialectStudySheetProps) {
                   {items.map((item) => (
                     <div 
                       key={item.id} 
-                      className={`p-4 rounded-lg border transition-all duration-300 ${
+                      className={`p-4 rounded-lg border ${
                         item.group === 'oriental' 
-                          ? 'border-red-300 dark:border-red-700 hover:border-red-400 dark:hover:border-red-600' 
-                          : 'border-blue-300 dark:border-blue-700 hover:border-blue-400 dark:hover:border-blue-600'
-                      }`}
+                          ? 'border-red-300 hover:border-red-400' 
+                          : 'border-blue-300 hover:border-blue-400'
+                      } transition-colors`}
                     >
                       <div 
                         className="flex justify-between items-start cursor-pointer"
                         onClick={() => toggleItemExpand(item.id)}
                       >
                         <div>
-                          <div className="font-medium text-gray-800 dark:text-gray-100 flex items-center gap-2 transition-colors duration-300">
+                          <div className="font-medium text-gray-800 flex items-center gap-2">
                             {item.name}
-                            <span className={`text-xs px-2 py-0.5 rounded-full transition-colors duration-300 ${
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
                               item.group === 'oriental' 
-                                ? 'bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300' 
-                                : 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300'
+                                ? 'bg-red-100 text-red-800' 
+                                : 'bg-blue-100 text-blue-800'
                             }`}>
                               {item.group === 'oriental' ? 'Oriental' : 'Occidental'}
                             </span>
                           </div>
-                          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1 transition-colors duration-300">
+                          <div className="text-sm text-gray-600 mt-1">
                             {item.description}
                           </div>
                         </div>
                         <button 
-                          className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-1 transition-colors duration-300"
+                          className="text-gray-400 hover:text-red-600 p-1"
                           aria-label={expandedItems[item.id] ? "Collapse" : "Expand"}
                         >
                           <span className={`toggle-icon inline-block ${expandedItems[item.id] ? 'rotated' : ''}`}>

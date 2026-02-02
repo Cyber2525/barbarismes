@@ -70,31 +70,31 @@ export function GameSettingsWidget({
 
   return (
     <div className="w-full max-w-4xl mx-auto mb-6">
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md p-6 transition-colors duration-300">
-        <h2 className="text-xl font-bold text-red-800 dark:text-red-400 mb-4 text-left md:text-center transition-colors duration-300">Configuració del joc</h2>
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-xl font-bold text-red-800 mb-4 text-left md:text-center">Configuració del joc</h2>
         
         {/* Mode selection section */}
         <div className="mb-6">
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-3 text-left md:text-center transition-colors duration-300">Tipus de test</h3>
+          <h3 className="text-lg font-medium text-gray-700 mb-3 text-left md:text-center">Tipus de test</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {modes.map((mode) => (
               <button
                 key={mode.id}
                 onClick={() => onSelectMode(mode.id)}
-                className={`flex items-start md:flex-col md:items-center p-4 rounded-lg transition-all duration-300 border-2 ${
+                className={`flex items-start md:flex-col md:items-center p-4 rounded-lg transition-colors duration-300 border-2 ${
                   selectedMode === mode.id 
-                    ? 'border-red-600 dark:border-red-500 bg-red-50 dark:bg-red-900/30' 
-                    : 'border-gray-200 dark:border-slate-600 hover:border-red-200 dark:hover:border-red-700'
+                    ? 'border-red-600 bg-red-50' 
+                    : 'border-gray-200 hover:border-red-200'
                 }`}
               >
-                <div className={`p-2 rounded-full mb-1 mr-3 md:mr-0 md:mb-2 transition-colors duration-300 ${
-                  selectedMode === mode.id ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300'
+                <div className={`p-2 rounded-full mb-1 mr-3 md:mr-0 md:mb-2 ${
+                  selectedMode === mode.id ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
                 }`}>
                   {mode.icon}
                 </div>
                 <div className="text-left md:text-center w-full">
-                  <h4 className="text-base font-medium text-gray-800 dark:text-gray-100 transition-colors duration-300">{mode.title}</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 transition-colors duration-300">{mode.description}</p>
+                  <h4 className="text-base font-medium text-gray-800">{mode.title}</h4>
+                  <p className="text-xs text-gray-500 mt-1">{mode.description}</p>
                 </div>
               </button>
             ))}
@@ -103,7 +103,7 @@ export function GameSettingsWidget({
         
         {/* Quiz size section - integrated directly in the widget */}
         <div className="mt-6">
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-3 text-left md:text-center transition-colors duration-300">Nombre de preguntes</h3>
+          <h3 className="text-lg font-medium text-gray-700 mb-3 text-left md:text-center">Nombre de preguntes</h3>
           
           {!showCustomInput ? (
             <>
@@ -114,8 +114,8 @@ export function GameSettingsWidget({
                     onClick={() => handleSelectSize(size)}
                     className={`py-3 px-4 rounded-lg text-sm md:text-base font-medium transition-all duration-300 ${
                       currentSize === size 
-                        ? 'bg-red-600 dark:bg-red-500 text-white' 
-                        : 'bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600'
+                        ? 'bg-red-600 text-white' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     {size}
@@ -125,7 +125,7 @@ export function GameSettingsWidget({
               
               <button 
                 onClick={handleCustomSizeSelect}
-                className="w-full py-3 px-4 rounded-lg text-sm md:text-base font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600 transition-all duration-300"
+                className="w-full py-3 px-4 rounded-lg text-sm md:text-base font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all duration-300"
               >
                 Personalitzat
               </button>
@@ -133,7 +133,7 @@ export function GameSettingsWidget({
           ) : (
             <div className="space-y-3">
               <div>
-                <label htmlFor="custom-size" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
+                <label htmlFor="custom-size" className="block text-sm font-medium text-gray-700 mb-1">
                   Nombre personalitzat (5-100):
                 </label>
                 <input
@@ -143,21 +143,21 @@ export function GameSettingsWidget({
                   max="100"
                   value={customSize}
                   onChange={(e) => setCustomSize(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:border-red-500 focus:ring-red-300 focus:outline-none transition-colors duration-300"
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-red-500 focus:ring-red-300 focus:outline-none"
                 />
               </div>
               
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowCustomInput(false)}
-                  className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-slate-600 transition-all duration-300"
+                  className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all duration-300"
                 >
                   Tornar
                 </button>
                 <button
                   onClick={handleCustomSizeSubmit}
                   disabled={!customSize || parseInt(customSize) < 5 || parseInt(customSize) > 100}
-                  className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-red-600 dark:bg-red-500 text-white hover:bg-red-700 dark:hover:bg-red-600 transition-all duration-300 disabled:bg-red-300 dark:disabled:bg-red-800 disabled:cursor-not-allowed"
+                  className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-all duration-300 disabled:bg-red-300 disabled:cursor-not-allowed"
                 >
                   Aplicar
                 </button>
@@ -165,7 +165,7 @@ export function GameSettingsWidget({
             </div>
           )}
           
-          <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 text-left md:text-center transition-colors duration-300">
+          <div className="mt-4 text-xs text-gray-500 text-left md:text-center">
             <span>La configuració es guardarà per a futures sessions.</span>
           </div>
         </div>

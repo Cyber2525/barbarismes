@@ -276,17 +276,17 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
   console.log('Display items count:', displayItems.length);
   
   return (
-    <div className="w-full max-w-md mx-auto bg-white dark:bg-slate-800 rounded-xl shadow-md overflow-hidden p-4 md:p-6 transition-colors duration-300">
+    <div className="w-full max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-4 md:p-6">
       <div className="text-left md:text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2 transition-colors duration-300">Resultats del Quiz</h2>
-        <div className="text-5xl font-bold text-red-600 dark:text-red-400 mb-2 transition-colors duration-300">{percentage}%</div>
-        <p className="text-gray-600 dark:text-gray-300 font-medium transition-colors duration-300">{getResultMessage()}</p>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 transition-colors duration-300">Has encertat {score} de {items.length} preguntes</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Resultats del Quiz</h2>
+        <div className="text-5xl font-bold text-red-600 mb-2">{percentage}%</div>
+        <p className="text-gray-600 font-medium">{getResultMessage()}</p>
+        <p className="text-sm text-gray-500 mt-1">Has encertat {score} de {items.length} preguntes</p>
       </div>
 
       <div className="mb-6">
-        <h3 className="text-md font-semibold text-gray-700 dark:text-gray-200 mb-2 transition-colors duration-300">Resum de les teves respostes:</h3>
-        <div className="divide-y divide-gray-100 dark:divide-slate-700">
+        <h3 className="text-md font-semibold text-gray-700 mb-2">Resum de les teves respostes:</h3>
+        <div className="divide-y divide-gray-100">
           {displayItems.map((item, index) => {
             // For originally correct items that were added from localStorage,
             // we need to use a different approach to determine answerState and answer
@@ -333,42 +333,42 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
                 )}
               </div>
               <div>
-                <div className="font-medium text-gray-800 dark:text-gray-100 transition-colors duration-300">
+                <div className="font-medium text-gray-800">
                   {item.barbarism}
                   {item.isSeptetFunest && (
-                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300 transition-colors duration-300">
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
                       Septet Funest
                     </span>
                   )}
                   {isOriginalItem && (
-                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300 transition-colors duration-300">
+                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                       Encert inicial
                     </span>
                   )}
                 </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-300">
+                <div className="text-sm text-gray-500">
                   La teva resposta: <span className={
-                    answerState === 0 ? "text-red-600 dark:text-red-400" : 
-                    answerState === 1 ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400"
+                    answerState === 0 ? "text-red-600" : 
+                    answerState === 1 ? "text-amber-600" : "text-green-600"
                   }>{userAnswer}</span>
                 </div>
                 {answerState === 0 && (
-                  <div className="text-sm text-gray-600 dark:text-gray-400 transition-colors duration-300">
+                  <div className="text-sm text-gray-600">
                     Formes correctes: {item.correctForms.join(", ")}
                   </div>
                 )}
                 {(answerState === 1 || answerState === 2) && (
-                  <div className="text-sm text-gray-600 dark:text-gray-400 transition-colors duration-300">
+                  <div className="text-sm text-gray-600">
                     Forma correcta: {item.correctForms[0]}
                     {item.correctForms.length > 1 && (
-                      <span className="text-xs text-gray-500 dark:text-gray-500 ml-1">
+                      <span className="text-xs text-gray-500 ml-1">
                         (també: {item.correctForms.slice(1).join(", ")})
                       </span>
                     )}
                   </div>
                 )}
                 {item.hint && (
-                  <div className="text-xs text-gray-500 dark:text-gray-500 mt-1 italic">
+                  <div className="text-xs text-gray-500 mt-1 italic">
                     {item.hint}
                   </div>
                 )}
@@ -377,20 +377,20 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
           )})}
         </div>
         
-        <div className="mt-4 text-xs bg-gray-50 dark:bg-slate-700 p-3 rounded-lg text-gray-700 dark:text-gray-300 transition-colors duration-300">
+        <div className="mt-4 text-xs bg-gray-50 p-3 rounded-lg">
           <div className="flex items-center mb-1">
-            <Check className="text-green-500 dark:text-green-400 mr-2" size={14} />
+            <Check className="text-green-500 mr-2" size={14} />
             <span>Correcte des del principi</span>
           </div>
           <div className="flex items-center mb-1">
-            <Squircle className="text-amber-500 dark:text-amber-400 mr-2" size={14} />
+            <Squircle className="text-amber-500 mr-2" size={14} />
             <span>Corregit després de fallar</span>
             {items[0]?.isPracticeItem && (
-              <span className="ml-2 text-gray-400 dark:text-gray-500">(es mantindrà a la següent ronda)</span>
+              <span className="ml-2 text-gray-400">(es mantindrà a la següent ronda)</span>
             )}
           </div>
           <div className="flex items-center">
-            <X className="text-red-500 dark:text-red-400 mr-2" size={14} />
+            <X className="text-red-500 mr-2" size={14} />
             <span>Incorrecte</span>
           </div>
         </div>
@@ -401,7 +401,7 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
           <button
             onClick={handlePracticeFailedItems}
             disabled={isPreparingFailedItems}
-            className="w-full bg-amber-500 dark:bg-amber-600 hover:bg-amber-600 dark:hover:bg-amber-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
+            className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
           >
             {isPreparingFailedItems ? (
               <>
@@ -427,7 +427,7 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
               onRestart();
             }, 10);
           }}
-          className="w-full bg-red-600 dark:bg-red-500 hover:bg-red-700 dark:hover:bg-red-600 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300"
+          className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300"
         >
           Començar una nova sessió
         </button>

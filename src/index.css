@@ -10,25 +10,6 @@
   --animation-duration: 200ms; /* Standard animation duration */
 }
 
-/* Dark mode - dimmed gradient background */
-.dark {
-  --primary-color: #E6223D; /* Brighter red for dark mode */
-  --primary-light: #3D3420; /* Darker yellow tone */
-  --secondary-color: #FFD700; /* Brighter gold */
-  --offline-indicator: rgba(251, 191, 36, 0.2);
-}
-
-/* Background gradient with dim effect in dark mode */
-.bg-gradient-main {
-  background: linear-gradient(to bottom right, rgb(254, 252, 232), rgb(254, 226, 226));
-  transition: filter 0.3s ease, background 0.3s ease;
-}
-
-.dark .bg-gradient-main {
-  background: linear-gradient(to bottom right, rgb(254, 252, 232), rgb(254, 226, 226));
-  filter: brightness(0.3) saturate(0.8);
-}
-
 html {
   scroll-behavior: smooth;
 }
@@ -216,10 +197,6 @@ button:focus-visible {
   background: #f1f1f1;
 }
 
-.dark ::-webkit-scrollbar-track {
-  background: #1e293b;
-}
-
 ::-webkit-scrollbar-thumb {
   background: var(--primary-color);
   border-radius: 4px;
@@ -227,10 +204,6 @@ button:focus-visible {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #960c22;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #ff4d6a;
 }
 
 /* Expandable content animations */
