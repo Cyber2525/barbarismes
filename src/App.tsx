@@ -273,17 +273,6 @@ export function App() {
           {/* App Section Selector */}
           <div className="flex flex-wrap justify-center gap-3 mb-4 w-full">
             <button 
-              onClick={() => setAppSection('barbarismes')} 
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg transition-colors ${
-                appSection === 'barbarismes' 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
-              }`}
-            >
-              <Languages size={18} />
-              <span>Barbarismes</span>
-            </button>
-            <button 
               onClick={() => setAppSection('dialectes')} 
               className={`flex items-center gap-2 px-5 py-2 rounded-lg transition-colors ${
                 appSection === 'dialectes' 
@@ -293,6 +282,17 @@ export function App() {
             >
               <Globe size={18} />
               <span>Dialectes</span>
+            </button>
+            <button 
+              onClick={() => setAppSection('barbarismes')} 
+              className={`flex items-center gap-2 px-5 py-2 rounded-lg transition-colors ${
+                appSection === 'barbarismes' 
+                  ? 'bg-red-600 text-white' 
+                  : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
+              }`}
+            >
+              <Languages size={18} />
+              <span>Barbarismes</span>
             </button>
           </div>
           
