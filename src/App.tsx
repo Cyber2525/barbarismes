@@ -388,7 +388,7 @@ export function App() {
 
         <footer className="text-center mt-8 md:mt-12 flex flex-col items-center">
           <OfflineButton />
-          <p className="mt-4 text-sm text-red-400 text-left md:text-center">© 2026 Estudiar Catalar CSI - Sacar un 10 en catalan, hecho posible por VICTOR DE NADAL</p>
+          <p className="mt-4 text-sm text-red-400 text-left md:text-center">© 2026 Estudiar Català CSI - Colegio Sant Ignacio - El 10, hecho posible por VICTOR DE NADAL</p>
         </footer>
       </div>
     </div>
