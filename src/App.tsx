@@ -388,7 +388,7 @@ export function App() {
 
         <footer className="text-center mt-8 md:mt-12 flex flex-col items-center">
           <OfflineButton />
-          <p className="mt-4 text-sm text-red-400 text-left md:text-center">Català CSI - Por Victor De Nadal - Colegio San Ignacio (CSI) Barcelona</p>
+          <p className="mt-4 text-sm text-red-400 text-left md:text-center">Català CSI - Por Víctor De Nadal - Colegio San Ignacio (CSI) Barcelona</p>
         </footer>
       </div>
     </div>
