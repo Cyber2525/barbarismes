@@ -47,7 +47,7 @@ export function App() {
   // Single study mode state for both content types
   const [isStudyMode, setIsStudyMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('isStudyMode');
-    return saved === 'false' ? false : true;
+    return saved !== null ? saved === 'true' : true;
   });
   
   // Save study mode to localStorage when it changes
