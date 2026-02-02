@@ -122,10 +122,10 @@ export function QuizQuestion({ item, onAnswer, onContinue, onRestart, answered }
   };
 
   return (
-    <div className="flex flex-col w-full max-w-md mx-auto p-4 md:p-6 bg-white rounded-xl shadow-md">
+    <div className="flex flex-col w-full max-w-md mx-auto p-4 md:p-6 bg-white dark:bg-slate-800 rounded-xl shadow-md transition-colors duration-300">
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Corregeix aquest barbarisme:</h2>
-        <div className="text-3xl font-bold text-red-600 p-4 bg-yellow-50 rounded-lg text-left md:text-center">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2 transition-colors duration-300">Corregeix aquest barbarisme:</h2>
+        <div className="text-3xl font-bold text-red-600 dark:text-red-400 p-4 bg-yellow-50 dark:bg-slate-700 rounded-lg text-left md:text-center transition-colors duration-300">
           {item.barbarism}
         </div>
       </div>
@@ -134,7 +134,7 @@ export function QuizQuestion({ item, onAnswer, onContinue, onRestart, answered }
         <button
           type="button"
           onClick={() => setShowRestartConfirm(true)}
-          className="flex items-center gap-1 text-sm bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 py-1.5 px-3 rounded-lg shadow-sm transition duration-200"
+          className="flex items-center gap-1 text-sm bg-white dark:bg-slate-700 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-slate-600 hover:text-red-700 hover:border-red-300 py-1.5 px-3 rounded-lg shadow-sm transition-all duration-300"
           aria-label="Reiniciar quiz"
         >
           <RotateCcw size={16} />
@@ -143,14 +143,14 @@ export function QuizQuestion({ item, onAnswer, onContinue, onRestart, answered }
       </div>
 
       {showRestartConfirm && (
-        <div className={`modal-container bg-black bg-opacity-50 p-4 ${isExitingModal ? 'exiting' : ''}`}>
-          <div className={`modal-content bg-white rounded-lg p-5 max-w-xs w-full shadow-lg ${isExitingModal ? 'exiting' : ''}`}>
-            <h3 className="text-lg font-bold text-gray-800 mb-3">Confirmar reinici</h3>
-            <p className="text-gray-600 mb-4">Estàs segur que vols reiniciar el quiz? Perdràs tot el progrés actual.</p>
+        <div className={`modal-container bg-black bg-opacity-50 dark:bg-opacity-70 p-4 ${isExitingModal ? 'exiting' : ''}`}>
+          <div className={`modal-content bg-white dark:bg-slate-800 rounded-lg p-5 max-w-xs w-full shadow-lg transition-colors duration-300 ${isExitingModal ? 'exiting' : ''}`}>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100 mb-3 transition-colors duration-300">Confirmar reinici</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4 transition-colors duration-300">Estàs segur que vols reiniciar el quiz? Perdràs tot el progrés actual.</p>
             <div className="flex gap-3">
               <button
                 onClick={handleCloseModal}
-                className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all duration-300"
+                className="flex-1 py-2 px-4 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-300"
               >
                 Cancel·lar
               </button>
@@ -163,7 +163,7 @@ export function QuizQuestion({ item, onAnswer, onContinue, onRestart, answered }
                     onRestart();
                   }, 200);
                 }}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300"
+                className="flex-1 bg-red-600 dark:bg-red-500 hover:bg-red-700 dark:hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300"
               >
                 Reiniciar
               </button>
@@ -174,7 +174,7 @@ export function QuizQuestion({ item, onAnswer, onContinue, onRestart, answered }
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="answer" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="answer" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors duration-300">
             Escriu la forma correcta:
           </label>
           <input
@@ -183,18 +183,18 @@ export function QuizQuestion({ item, onAnswer, onContinue, onRestart, answered }
             ref={inputRef}
             value={answer}
             onChange={(e) => setAnswer(e.target.value)}
-            className={`w-full px-4 py-3 rounded-lg border ${
+            className={`w-full px-4 py-3 rounded-lg border transition-all duration-300 ${
               submitted
                 ? isCorrect
-                  ? 'border-green-500 bg-green-50'
-                  : 'border-red-500 bg-red-50'
-                : 'border-gray-300 focus:border-red-500 focus:ring-red-300'
-            } focus:outline-none transition duration-200`}
+                  ? 'border-green-500 bg-green-50 dark:bg-green-900/30 dark:border-green-400'
+                  : 'border-red-500 bg-red-50 dark:bg-red-900/30 dark:border-red-400'
+                : 'border-gray-300 dark:border-slate-600 dark:bg-slate-700 dark:text-white focus:border-red-500 focus:ring-red-300'
+            } focus:outline-none`}
             placeholder="La teva resposta..."
             disabled={submitted}
             autoComplete="off"
           />
-          <div className="mt-1 text-xs text-gray-500">
+          <div className="mt-1 text-xs text-gray-500 dark:text-gray-400 transition-colors duration-300">
             <span className="italic">Prem Enter per enviar</span>
           </div>
         </div>
@@ -204,38 +204,38 @@ export function QuizQuestion({ item, onAnswer, onContinue, onRestart, answered }
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300"
+                className="flex-1 bg-red-600 dark:bg-red-500 hover:bg-red-700 dark:hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300"
               >
                 Comprovar
               </button>
               <button
                 type="button"
                 onClick={() => setShowHint(true)}
-                className="bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-medium py-2 px-4 rounded-lg transition-all duration-300"
+                className="bg-yellow-400 dark:bg-yellow-500 hover:bg-yellow-500 dark:hover:bg-yellow-600 text-gray-800 font-medium py-2 px-4 rounded-lg transition-all duration-300"
               >
                 Pista
               </button>
             </div>
-            <div className="text-xs text-center text-gray-500">
+            <div className="text-xs text-center text-gray-500 dark:text-gray-400 transition-colors duration-300">
               <span className="italic">Prem Enter per comprovar</span>
             </div>
           </div>
         ) : (
           <div className="space-y-4">
-            <div className={`p-4 rounded-lg ${isCorrect ? 'bg-green-100' : 'bg-red-100'} animate-fadeIn`}
+            <div className={`p-4 rounded-lg transition-colors duration-300 ${isCorrect ? 'bg-green-100 dark:bg-green-900/40' : 'bg-red-100 dark:bg-red-900/40'} animate-fadeIn`}
                  style={{animation: 'fadeIn 0.3s ease-in-out'}}>
               <div className="flex items-center gap-2 mb-2">
                 {isCorrect ? (
-                  <Check className="text-green-600" size={20} />
+                  <Check className="text-green-600 dark:text-green-400" size={20} />
                 ) : (
-                  <X className="text-red-600" size={20} />
+                  <X className="text-red-600 dark:text-red-400" size={20} />
                 )}
-                <span className={`font-medium ${isCorrect ? 'text-green-600' : 'text-red-600'}`}>
+                <span className={`font-medium ${isCorrect ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                   {isCorrect ? 'Correcte!' : 'Incorrecte'}
                 </span>
               </div>
               {!isCorrect && (
-                <div className="text-gray-700">
+                <div className="text-gray-700 dark:text-gray-300 transition-colors duration-300">
                   <p className="mb-1">Les formes correctes són:</p>
                   <ul className="list-disc pl-5">
                     {item.correctForms.map((form, index) => (
@@ -257,7 +257,7 @@ export function QuizQuestion({ item, onAnswer, onContinue, onRestart, answered }
                   }
                 }, 100);
               }}
-              className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300"
+              className="w-full flex items-center justify-center gap-2 bg-red-600 dark:bg-red-500 hover:bg-red-700 dark:hover:bg-red-600 text-white font-medium py-3 px-4 rounded-lg transition-all duration-300"
             >
               <span>Continuar</span>
               <ChevronRight size={18} />
@@ -269,14 +269,14 @@ export function QuizQuestion({ item, onAnswer, onContinue, onRestart, answered }
         )}
         
         {showHint && !submitted && (
-          <div className="text-gray-600 text-sm p-3 bg-gray-100 rounded-lg">
+          <div className="text-gray-600 dark:text-gray-300 text-sm p-3 bg-gray-100 dark:bg-slate-700 rounded-lg transition-colors duration-300">
             {item.hint ? (
               <p>Pista: {item.hint}</p>
             ) : (
               <p>Pista: La paraula té {item.correctForms[0].length} lletres i comença per '{item.correctForms[0][0]}'</p>
             )}
             {item.isSeptetFunest && (
-              <p className="mt-1 text-red-600 font-medium">Aquesta paraula forma part del "Septet Funest" - els 7 errors més comuns en català!</p>
+              <p className="mt-1 text-red-600 dark:text-red-400 font-medium transition-colors duration-300">Aquesta paraula forma part del "Septet Funest" - els 7 errors més comuns en català!</p>
             )}
           </div>
         )}
