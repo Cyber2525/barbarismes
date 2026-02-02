@@ -388,7 +388,7 @@ export function App() {
 
         <footer className="text-center mt-8 md:mt-12 flex flex-col items-center">
           <OfflineButton />
-          <p className="mt-4 text-sm text-red-400 text-left md:text-center">© 2026 Estudiar Català CSI - Colegio San Ignacio de Barcelona - VICTOR DE NADAL</p>
+          <p className="mt-4 text-sm text-red-400 text-left md:text-center">Hecho por Victor De Nadal - Colegio San Ignacio de Barcelona</p>
         </footer>
       </div>
     </div>
