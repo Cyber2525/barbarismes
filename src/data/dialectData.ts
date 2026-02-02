@@ -40,7 +40,7 @@ export const dialectItems: DialectItem[] = [
     id: 'rossellones',
     name: 'Rossellonès',
     group: 'oriental',
-    description: 'Parlat al Rosselló (Catalunya Nord)',
+    description: 'Parlat al Rosselló (Catalunya Francesa / Nord)',
     characteristics: [
       'Vocalisme tònic de cinc fonemes: vi, bé, va, cor, curt.',
       'Supressió de la vocal neutra en la terminació -ia (com en el baleàric): prudenci (prudència), gabi (gàbia), famili (família), esbergini (albergínia)',
