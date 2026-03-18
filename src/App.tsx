@@ -47,7 +47,7 @@ export function App() {
     isPracticeMode: false,
     originalFailedItems: []
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Single study mode state for both content types
   const [isStudyMode, setIsStudyMode] = useState<boolean>(() => {
@@ -71,15 +71,13 @@ export function App() {
     };
   }, []);
 
-  // Initialize quiz
+  // Initialize quiz on first mount only
   useEffect(() => {
-    startNewQuiz();
-    // Ensure quiz state is reset properly after any update to these dependencies
-    setQuizState(prevState => ({
-      ...prevState,
-      completed: false
-    }));
-  }, [quizSize, quizMode, doneFilter]);
+    setIsLoading(true);
+    setTimeout(() => {
+      startNewQuiz();
+    }, 800);
+  }, []);
   
   // Listen for practice failed items event
   useEffect(() => {
@@ -157,19 +155,17 @@ export function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const startNewQuiz = (specificItems?: QuizItem[], isPracticeMode: boolean = false) => {
-    setIsLoading(true);
-    
-    // Force quiz completed state to false immediately to ensure UI update
-    setQuizState(prevState => ({
-      ...prevState,
-      completed: false
-    }));
-    
-    // Simulate loading for a smoother transition
-    setTimeout(() => {
-      // Use provided items if available, otherwise generate random items
-      let quizItems = specificItems || getRandomQuizItems(quizSize, quizMode, doneFilter);
+  const startNewQuiz = (
+    specificItems?: QuizItem[],
+    isPracticeMode: boolean = false,
+    overrides?: { size?: number; mode?: QuizMode; doneFilter?: DoneQuizFilter }
+  ) => {
+    const effectiveSize = overrides?.size ?? quizSize;
+    const effectiveMode = overrides?.mode ?? quizMode;
+    const effectiveDoneFilter = overrides?.doneFilter ?? doneFilter;
+
+    // Use provided items if available, otherwise generate random items
+    let quizItems = specificItems || getRandomQuizItems(effectiveSize, effectiveMode, effectiveDoneFilter);
       
       // If specific items are provided and it's practice mode, preserve their practice state
       if (specificItems && isPracticeMode) {
@@ -203,8 +199,7 @@ export function App() {
         isPracticeMode: isPracticeMode,
         originalFailedItems: isPracticeMode ? [...quizItems] : []
       });
-      setIsLoading(false);
-    }, 1000);
+    setIsLoading(false);
   };
 
   const handleAnswer = (answer: string, isCorrect: boolean) => {
@@ -238,22 +233,18 @@ export function App() {
   };
   
   const handleQuizSizeChange = (size: number) => {
-    if (size !== quizSize) {
-      setQuizSize(size);
-      // The quiz will restart due to the useEffect dependency on quizSize
-    }
+    setQuizSize(size);
+    startNewQuiz(undefined, false, { size });
   };
   
   const handleQuizModeChange = (mode: QuizMode) => {
-    if (mode !== quizMode) {
-      setQuizMode(mode);
-    }
+    setQuizMode(mode);
+    startNewQuiz(undefined, false, { mode });
   };
 
   const handleDoneFilterChange = (filter: DoneQuizFilter) => {
-    if (filter !== doneFilter) {
-      setDoneFilter(filter);
-    }
+    setDoneFilter(filter);
+    startNewQuiz(undefined, false, { doneFilter: filter });
   };
 
   if (isLoading) {
