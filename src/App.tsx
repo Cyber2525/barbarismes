@@ -47,9 +47,8 @@ export function App() {
     isPracticeMode: false,
     originalFailedItems: []
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [quizStarted, setQuizStarted] = useState(false);
-
+  const [isLoading, setIsLoading] = useState(true);
+  
   // Single study mode state for both content types
   const [isStudyMode, setIsStudyMode] = useState<boolean>(() => {
     const saved = localStorage.getItem('isStudyMode');
@@ -72,6 +71,16 @@ export function App() {
     };
   }, []);
 
+  // Initialize quiz
+  useEffect(() => {
+    startNewQuiz();
+    // Ensure quiz state is reset properly after any update to these dependencies
+    setQuizState(prevState => ({
+      ...prevState,
+      completed: false
+    }));
+  }, [quizSize, quizMode, doneFilter]);
+  
   // Listen for practice failed items event
   useEffect(() => {
     const handlePracticeFailedItems = (event: CustomEvent) => {
@@ -148,28 +157,19 @@ export function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const startNewQuiz = (
-    specificItems?: QuizItem[],
-    isPracticeMode: boolean = false,
-    overrides?: { mode?: QuizMode; doneFilter?: DoneQuizFilter; size?: number }
-  ) => {
+  const startNewQuiz = (specificItems?: QuizItem[], isPracticeMode: boolean = false) => {
     setIsLoading(true);
-    setQuizStarted(true);
     
     // Force quiz completed state to false immediately to ensure UI update
     setQuizState(prevState => ({
       ...prevState,
       completed: false
     }));
-
-    const effectiveMode = overrides?.mode ?? quizMode;
-    const effectiveDoneFilter = overrides?.doneFilter ?? doneFilter;
-    const effectiveSize = overrides?.size ?? quizSize;
     
     // Simulate loading for a smoother transition
     setTimeout(() => {
       // Use provided items if available, otherwise generate random items
-      let quizItems = specificItems || getRandomQuizItems(effectiveSize, effectiveMode, effectiveDoneFilter);
+      let quizItems = specificItems || getRandomQuizItems(quizSize, quizMode, doneFilter);
       
       // If specific items are provided and it's practice mode, preserve their practice state
       if (specificItems && isPracticeMode) {
@@ -237,24 +237,22 @@ export function App() {
     }
   };
   
+  const handleQuizSizeChange = (size: number) => {
+    if (size !== quizSize) {
+      setQuizSize(size);
+      // The quiz will restart due to the useEffect dependency on quizSize
+    }
+  };
+  
   const handleQuizModeChange = (mode: QuizMode) => {
-    setQuizMode(mode);
-    if (quizStarted && !quizState.completed) {
-      startNewQuiz(undefined, false, { mode });
+    if (mode !== quizMode) {
+      setQuizMode(mode);
     }
   };
 
   const handleDoneFilterChange = (filter: DoneQuizFilter) => {
-    setDoneFilter(filter);
-    if (quizStarted && !quizState.completed) {
-      startNewQuiz(undefined, false, { doneFilter: filter });
-    }
-  };
-
-  const handleQuizSizeChange = (size: number) => {
-    setQuizSize(size);
-    if (quizStarted && !quizState.completed) {
-      startNewQuiz(undefined, false, { size });
+    if (filter !== doneFilter) {
+      setDoneFilter(filter);
     }
   };
 
@@ -360,53 +358,26 @@ export function App() {
                 />
               ) : (
                 <>
-                  {!quizStarted ? (
-                    /* Settings screen — quiz not yet started */
-                    <div className="w-full flex flex-col items-center">
-                      <div className="w-full mb-4">
-                        <GameSettingsWidget
-                          selectedMode={quizMode}
-                          onSelectMode={handleQuizModeChange}
-                          currentSize={quizSize}
-                          onSelectQuizSize={handleQuizSizeChange}
-                          doneFilter={doneFilter}
-                          onSelectDoneFilter={handleDoneFilterChange}
-                        />
-                      </div>
-                      <button
-                        onClick={() => startNewQuiz()}
-                        className="px-10 py-4 bg-red-600 hover:bg-red-700 text-white text-lg font-bold rounded-xl shadow-md transition-colors duration-200"
-                      >
-                        Iniciar quiz
-                      </button>
-                    </div>
-                  ) : quizState.completed ? (
-                    <QuizResults
-                      items={quizState.items}
-                      answers={quizState.answers}
-                      score={quizState.score}
-                      onRestart={() => setQuizStarted(false)}
-                    />
-                  ) : (
+                  {!quizState.completed ? (
                     <>
                       <div className="w-full max-w-md bg-white rounded-xl shadow-md p-4 mb-6">
-                        <QuizProgress
-                          current={quizState.currentIndex}
+                        <QuizProgress 
+                          current={quizState.currentIndex} 
                           total={quizState.items.length}
-                          score={quizState.score}
+                          score={quizState.score} 
                         />
                       </div>
-
+                      
                       {quizState.items.length > 0 && (
-                        <QuizQuestion
-                          item={quizState.items[quizState.currentIndex]}
+                        <QuizQuestion 
+                          item={quizState.items[quizState.currentIndex]} 
                           onAnswer={handleAnswer}
                           onContinue={handleContinue}
                           onRestart={startNewQuiz}
                           answered={quizState.answers[quizState.currentIndex] !== ''}
                         />
                       )}
-
+                      
                       <div className="w-full mb-6 mt-6">
                         <GameSettingsWidget
                           selectedMode={quizMode}
@@ -418,6 +389,13 @@ export function App() {
                         />
                       </div>
                     </>
+                  ) : (
+                    <QuizResults 
+                      items={quizState.items} 
+                      answers={quizState.answers} 
+                      score={quizState.score} 
+                      onRestart={startNewQuiz} 
+                    />
                   )}
                 </>
               )}
