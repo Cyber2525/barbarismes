@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import './index.css';
-import { QuizItem, QuizState, QuizMode } from './types/quiz';
+import { DoneQuizFilter, QuizItem, QuizState, QuizMode } from './types/quiz';
 import { getRandomQuizItems } from './data/quizData';
 import { QuizQuestion } from './components/QuizQuestion';
 import { QuizProgress } from './components/QuizProgress';
@@ -32,6 +32,11 @@ export function App() {
     const savedMode = localStorage.getItem('quizMode');
     return (savedMode as QuizMode) || 'tots';
   });
+
+  const [doneFilter, setDoneFilter] = useState<DoneQuizFilter>(() => {
+    const saved = localStorage.getItem('doneQuizFilter');
+    return (saved as DoneQuizFilter) || 'all';
+  });
   
   const [quizState, setQuizState] = useState<QuizState>({
     items: [],
@@ -42,7 +47,8 @@ export function App() {
     isPracticeMode: false,
     originalFailedItems: []
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [quizHasStarted, setQuizHasStarted] = useState(false);
   
   // Single study mode state for both content types
   const [isStudyMode, setIsStudyMode] = useState<boolean>(() => {
@@ -66,15 +72,13 @@ export function App() {
     };
   }, []);
 
-  // Initialize quiz
+  // Initialize quiz on first mount only
   useEffect(() => {
-    startNewQuiz();
-    // Ensure quiz state is reset properly after any update to these dependencies
-    setQuizState(prevState => ({
-      ...prevState,
-      completed: false
-    }));
-  }, [quizSize, quizMode]);
+    setIsLoading(true);
+    setTimeout(() => {
+      startNewQuiz();
+    }, 800);
+  }, []);
   
   // Listen for practice failed items event
   useEffect(() => {
@@ -98,6 +102,8 @@ export function App() {
           ...prevState,
           completed: false
         }));
+        // Keep settings hidden during practice mode
+        setQuizHasStarted(true);
         
         // Small delay to ensure state updates before starting new quiz
         setTimeout(() => {
@@ -122,6 +128,11 @@ export function App() {
   useEffect(() => {
     localStorage.setItem('quizMode', quizMode);
   }, [quizMode]);
+
+  // Save done filter to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('doneQuizFilter', doneFilter);
+  }, [doneFilter]);
   
   // Save app section to localStorage when it changes
   useEffect(() => {
@@ -147,19 +158,17 @@ export function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const startNewQuiz = (specificItems?: QuizItem[], isPracticeMode: boolean = false) => {
-    setIsLoading(true);
-    
-    // Force quiz completed state to false immediately to ensure UI update
-    setQuizState(prevState => ({
-      ...prevState,
-      completed: false
-    }));
-    
-    // Simulate loading for a smoother transition
-    setTimeout(() => {
-      // Use provided items if available, otherwise generate random items
-      let quizItems = specificItems || getRandomQuizItems(quizSize, quizMode);
+  const startNewQuiz = (
+    specificItems?: QuizItem[],
+    isPracticeMode: boolean = false,
+    overrides?: { size?: number; mode?: QuizMode; doneFilter?: DoneQuizFilter }
+  ) => {
+    const effectiveSize = overrides?.size ?? quizSize;
+    const effectiveMode = overrides?.mode ?? quizMode;
+    const effectiveDoneFilter = overrides?.doneFilter ?? doneFilter;
+
+    // Use provided items if available, otherwise generate random items
+    let quizItems = specificItems || getRandomQuizItems(effectiveSize, effectiveMode, effectiveDoneFilter);
       
       // If specific items are provided and it's practice mode, preserve their practice state
       if (specificItems && isPracticeMode) {
@@ -184,6 +193,11 @@ export function App() {
         localStorage.removeItem('practiceRound');
       }
       
+      // Reset quizHasStarted when starting a new quiz (but not for practice mode continuations)
+      if (!isPracticeMode) {
+        setQuizHasStarted(false);
+      }
+      
       setQuizState({
         items: quizItems,
         currentIndex: 0,
@@ -193,11 +207,15 @@ export function App() {
         isPracticeMode: isPracticeMode,
         originalFailedItems: isPracticeMode ? [...quizItems] : []
       });
-      setIsLoading(false);
-    }, 1000);
+    setIsLoading(false);
   };
 
   const handleAnswer = (answer: string, isCorrect: boolean) => {
+    // Mark quiz as started when first answer is submitted
+    if (!quizHasStarted) {
+      setQuizHasStarted(true);
+    }
+    
     const updatedState = { ...quizState };
     updatedState.answers[quizState.currentIndex] = answer;
     
@@ -228,17 +246,18 @@ export function App() {
   };
   
   const handleQuizSizeChange = (size: number) => {
-    if (size !== quizSize) {
-      setQuizSize(size);
-      // The quiz will restart due to the useEffect dependency on quizSize
-    }
+    setQuizSize(size);
+    startNewQuiz(undefined, false, { size });
   };
   
   const handleQuizModeChange = (mode: QuizMode) => {
-    if (mode !== quizMode) {
-      setQuizMode(mode);
-      // The quiz will restart due to the useEffect dependency on quizMode
-    }
+    setQuizMode(mode);
+    startNewQuiz(undefined, false, { mode });
+  };
+
+  const handleDoneFilterChange = (filter: DoneQuizFilter) => {
+    setDoneFilter(filter);
+    startNewQuiz(undefined, false, { doneFilter: filter });
   };
 
   if (isLoading) {
@@ -360,17 +379,22 @@ export function App() {
                           onContinue={handleContinue}
                           onRestart={startNewQuiz}
                           answered={quizState.answers[quizState.currentIndex] !== ''}
+                          isFirstQuestion={!quizHasStarted}
                         />
                       )}
                       
-                      <div className="w-full mb-6 mt-6">
-                        <GameSettingsWidget
-                          selectedMode={quizMode}
-                          onSelectMode={handleQuizModeChange}
-                          currentSize={quizSize}
-                          onSelectQuizSize={handleQuizSizeChange}
-                        />
-                      </div>
+                      {!quizHasStarted && (
+                        <div className="w-full mb-6 mt-6">
+                          <GameSettingsWidget
+                            selectedMode={quizMode}
+                            onSelectMode={handleQuizModeChange}
+                            currentSize={quizSize}
+                            onSelectQuizSize={handleQuizSizeChange}
+                            doneFilter={doneFilter}
+                            onSelectDoneFilter={handleDoneFilterChange}
+                          />
+                        </div>
+                      )}
                     </>
                   ) : (
                     <QuizResults 

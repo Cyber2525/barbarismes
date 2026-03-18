@@ -8,9 +8,10 @@ interface QuizQuestionProps {
   onContinue: () => void;
   onRestart: () => void;
   answered: boolean;
+  isFirstQuestion?: boolean;
 }
 
-export function QuizQuestion({ item, onAnswer, onContinue, onRestart, answered }: QuizQuestionProps) {
+export function QuizQuestion({ item, onAnswer, onContinue, onRestart, answered, isFirstQuestion = false }: QuizQuestionProps) {
   const [answer, setAnswer] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -206,7 +207,7 @@ export function QuizQuestion({ item, onAnswer, onContinue, onRestart, answered }
                 type="submit"
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-300"
               >
-                Comprovar
+                {isFirstQuestion ? 'Iniciar i comprovar' : 'Comprovar'}
               </button>
               <button
                 type="button"
@@ -217,7 +218,7 @@ export function QuizQuestion({ item, onAnswer, onContinue, onRestart, answered }
               </button>
             </div>
             <div className="text-xs text-center text-gray-500">
-              <span className="italic">Prem Enter per comprovar</span>
+              <span className="italic">Prem Enter per {isFirstQuestion ? 'iniciar i comprovar' : 'comprovar'}</span>
             </div>
           </div>
         ) : (
