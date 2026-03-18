@@ -544,6 +544,19 @@ quizData.forEach(item => {
   }
 });
 
+export function countAvailableItems(mode: 'barbarismes' | 'frases' | 'tots', doneFilter: DoneQuizFilter): number {
+  let filtered = [...quizData];
+  if (mode === 'barbarismes') filtered = filtered.filter(i => i.type === 'barbarisme');
+  else if (mode === 'frases') filtered = filtered.filter(i => i.type === 'frase');
+
+  if (doneFilter !== 'all') {
+    const doneSet = getDoneItems();
+    if (doneFilter === 'done') filtered = filtered.filter(i => doneSet.has(i.barbarism));
+    else if (doneFilter === 'not-done') filtered = filtered.filter(i => !doneSet.has(i.barbarism));
+  }
+  return filtered.length;
+}
+
 export function getRandomQuizItems(count: number, mode: 'barbarismes' | 'frases' | 'tots' = 'tots', doneFilter: DoneQuizFilter = 'all'): QuizItem[] {
   // Filter items based on mode
   let filteredItems = [...quizData];

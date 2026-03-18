@@ -102,6 +102,8 @@ export function App() {
           ...prevState,
           completed: false
         }));
+        // Keep settings hidden during practice mode
+        setQuizHasStarted(true);
         
         // Small delay to ensure state updates before starting new quiz
         setTimeout(() => {
@@ -191,8 +193,10 @@ export function App() {
         localStorage.removeItem('practiceRound');
       }
       
-      // Reset quizHasStarted when starting a new quiz
-      setQuizHasStarted(false);
+      // Reset quizHasStarted when starting a new quiz (but not for practice mode continuations)
+      if (!isPracticeMode) {
+        setQuizHasStarted(false);
+      }
       
       setQuizState({
         items: quizItems,
