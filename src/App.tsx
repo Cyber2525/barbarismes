@@ -48,6 +48,7 @@ export function App() {
     originalFailedItems: []
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [quizHasStarted, setQuizHasStarted] = useState(false);
   
   // Single study mode state for both content types
   const [isStudyMode, setIsStudyMode] = useState<boolean>(() => {
@@ -190,6 +191,9 @@ export function App() {
         localStorage.removeItem('practiceRound');
       }
       
+      // Reset quizHasStarted when starting a new quiz
+      setQuizHasStarted(false);
+      
       setQuizState({
         items: quizItems,
         currentIndex: 0,
@@ -203,6 +207,11 @@ export function App() {
   };
 
   const handleAnswer = (answer: string, isCorrect: boolean) => {
+    // Mark quiz as started when first answer is submitted
+    if (!quizHasStarted) {
+      setQuizHasStarted(true);
+    }
+    
     const updatedState = { ...quizState };
     updatedState.answers[quizState.currentIndex] = answer;
     
@@ -366,19 +375,22 @@ export function App() {
                           onContinue={handleContinue}
                           onRestart={startNewQuiz}
                           answered={quizState.answers[quizState.currentIndex] !== ''}
+                          isFirstQuestion={!quizHasStarted}
                         />
                       )}
                       
-                      <div className="w-full mb-6 mt-6">
-                        <GameSettingsWidget
-                          selectedMode={quizMode}
-                          onSelectMode={handleQuizModeChange}
-                          currentSize={quizSize}
-                          onSelectQuizSize={handleQuizSizeChange}
-                          doneFilter={doneFilter}
-                          onSelectDoneFilter={handleDoneFilterChange}
-                        />
-                      </div>
+                      {!quizHasStarted && (
+                        <div className="w-full mb-6 mt-6">
+                          <GameSettingsWidget
+                            selectedMode={quizMode}
+                            onSelectMode={handleQuizModeChange}
+                            currentSize={quizSize}
+                            onSelectQuizSize={handleQuizSizeChange}
+                            doneFilter={doneFilter}
+                            onSelectDoneFilter={handleDoneFilterChange}
+                          />
+                        </div>
+                      )}
                     </>
                   ) : (
                     <QuizResults 
