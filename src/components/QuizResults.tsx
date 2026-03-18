@@ -41,10 +41,9 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
     return 2;
   };
 
-  // Auto-mark initially correct items and detect corrected items for dialog
+  // Auto-mark initially correct items on first mount
   useEffect(() => {
     const initiallyCorrect: string[] = [];
-    const corrected: QuizItem[] = [];
     const doneSet = getDoneItems();
 
     displayItems.forEach((item, index) => {
@@ -54,22 +53,12 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
         if (!doneSet.has(item.barbarism)) {
           initiallyCorrect.push(item.barbarism);
         }
-      } else if (state === 1) {
-        // Corrected after failing — add to pending dialog list (only if not already done)
-        if (!doneSet.has(item.barbarism)) {
-          corrected.push(item);
-        }
       }
       // wasOriginallyCorrect items are from prior sessions, already handled
     });
 
     if (initiallyCorrect.length > 0) {
       markManyAsDone(initiallyCorrect);
-    }
-
-    if (corrected.length > 0) {
-      setCorrectedPendingItems(corrected);
-      setShowCorrectedDialog(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -149,6 +138,30 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
   };
 
   const failedItemsCount = items.length - score;
+
+  // Show the corrected items dialog only when quiz is 100% complete (no failed items left)
+  useEffect(() => {
+    if (failedItemsCount === 0) {
+      const corrected: QuizItem[] = [];
+      const doneSet = getDoneItems();
+
+      displayItems.forEach((item, index) => {
+        const state = getAnswerState(index, item);
+        if (state === 1 && !item.wasOriginallyCorrect) {
+          // Corrected after failing — show dialog only if not already done
+          if (!doneSet.has(item.barbarism)) {
+            corrected.push(item);
+          }
+        }
+      });
+
+      if (corrected.length > 0) {
+        setCorrectedPendingItems(corrected);
+        setShowCorrectedDialog(true);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [failedItemsCount]);
 
   const getOriginallyCorrectItems = () => {
     if (items[0]?.isPracticeItem) {
