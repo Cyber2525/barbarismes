@@ -310,7 +310,7 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
                     La teva resposta:{' '}
                     <span className={
                       answerState === 0 ? 'text-red-600' :
-                      answerState === 1 ? 'text-amber-600' : 'text-green-600'
+                        answerState === 1 ? 'text-amber-600' : 'text-green-600'
                     }>{userAnswer}</span>
                   </div>
                   {answerState === 0 && (
@@ -340,15 +340,15 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
         <div className="mt-4 text-xs bg-gray-50 p-3 rounded-lg">
           <div className="flex items-center mb-1">
             <Check className="text-green-500 mr-2" size={14} />
-            <span>Correcte des del principi (es marca automàticament com a fet)</span>
+            <span>Correctes a la primera</span>
           </div>
           <div className="flex items-center mb-1">
             <Squircle className="text-amber-500 mr-2" size={14} />
-            <span>Corregit després de fallar (se't demanarà si vols marcar-lo com a fet)</span>
+            <span>Corregides després</span>
           </div>
           <div className="flex items-center">
             <X className="text-red-500 mr-2" size={14} />
-            <span>Incorrecte</span>
+            <span>Incorrectes</span>
           </div>
         </div>
       </div>
