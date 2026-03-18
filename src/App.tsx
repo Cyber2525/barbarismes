@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import './index.css';
-import { QuizItem, QuizState, QuizMode } from './types/quiz';
+import { DoneQuizFilter, QuizItem, QuizState, QuizMode } from './types/quiz';
 import { getRandomQuizItems } from './data/quizData';
 import { QuizQuestion } from './components/QuizQuestion';
 import { QuizProgress } from './components/QuizProgress';
@@ -31,6 +31,11 @@ export function App() {
   const [quizMode, setQuizMode] = useState<QuizMode>(() => {
     const savedMode = localStorage.getItem('quizMode');
     return (savedMode as QuizMode) || 'tots';
+  });
+
+  const [doneFilter, setDoneFilter] = useState<DoneQuizFilter>(() => {
+    const saved = localStorage.getItem('doneQuizFilter');
+    return (saved as DoneQuizFilter) || 'all';
   });
   
   const [quizState, setQuizState] = useState<QuizState>({
@@ -74,7 +79,7 @@ export function App() {
       ...prevState,
       completed: false
     }));
-  }, [quizSize, quizMode]);
+  }, [quizSize, quizMode, doneFilter]);
   
   // Listen for practice failed items event
   useEffect(() => {
@@ -122,6 +127,11 @@ export function App() {
   useEffect(() => {
     localStorage.setItem('quizMode', quizMode);
   }, [quizMode]);
+
+  // Save done filter to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('doneQuizFilter', doneFilter);
+  }, [doneFilter]);
   
   // Save app section to localStorage when it changes
   useEffect(() => {
@@ -159,7 +169,7 @@ export function App() {
     // Simulate loading for a smoother transition
     setTimeout(() => {
       // Use provided items if available, otherwise generate random items
-      let quizItems = specificItems || getRandomQuizItems(quizSize, quizMode);
+      let quizItems = specificItems || getRandomQuizItems(quizSize, quizMode, doneFilter);
       
       // If specific items are provided and it's practice mode, preserve their practice state
       if (specificItems && isPracticeMode) {
@@ -237,7 +247,12 @@ export function App() {
   const handleQuizModeChange = (mode: QuizMode) => {
     if (mode !== quizMode) {
       setQuizMode(mode);
-      // The quiz will restart due to the useEffect dependency on quizMode
+    }
+  };
+
+  const handleDoneFilterChange = (filter: DoneQuizFilter) => {
+    if (filter !== doneFilter) {
+      setDoneFilter(filter);
     }
   };
 
@@ -369,6 +384,8 @@ export function App() {
                           onSelectMode={handleQuizModeChange}
                           currentSize={quizSize}
                           onSelectQuizSize={handleQuizSizeChange}
+                          doneFilter={doneFilter}
+                          onSelectDoneFilter={handleDoneFilterChange}
                         />
                       </div>
                     </>

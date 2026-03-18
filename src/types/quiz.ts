@@ -21,3 +21,4 @@ export interface QuizState {
 }
 
 export type QuizMode = 'barbarismes' | 'frases' | 'tots';
+export type DoneQuizFilter = 'all' | 'done' | 'not-done';

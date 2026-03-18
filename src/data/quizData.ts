@@ -1,4 +1,5 @@
-import { QuizItem } from '../types/quiz';
+import { DoneQuizFilter, QuizItem } from '../types/quiz';
+import { getDoneItems } from '../utils/doneItems';
 
 export const quizData: QuizItem[] = [
   // A
@@ -543,25 +544,35 @@ quizData.forEach(item => {
   }
 });
 
-export function getRandomQuizItems(count: number, mode: 'barbarismes' | 'frases' | 'tots' = 'tots'): QuizItem[] {
+export function getRandomQuizItems(count: number, mode: 'barbarismes' | 'frases' | 'tots' = 'tots', doneFilter: DoneQuizFilter = 'all'): QuizItem[] {
   // Filter items based on mode
   let filteredItems = [...quizData];
-  
+
   if (mode === 'barbarismes') {
-    filteredItems = quizData.filter(item => item.type === 'barbarisme');
+    filteredItems = filteredItems.filter(item => item.type === 'barbarisme');
   } else if (mode === 'frases') {
-    filteredItems = quizData.filter(item => item.type === 'frase');
+    filteredItems = filteredItems.filter(item => item.type === 'frase');
   }
-  
+
+  // Filter by done status
+  if (doneFilter !== 'all') {
+    const doneSet = getDoneItems();
+    if (doneFilter === 'done') {
+      filteredItems = filteredItems.filter(item => doneSet.has(item.barbarism));
+    } else if (doneFilter === 'not-done') {
+      filteredItems = filteredItems.filter(item => !doneSet.has(item.barbarism));
+    }
+  }
+
   // Create a copy to avoid modifying the original array
   const shuffled = [...filteredItems];
-  
+
   // Shuffle the array using Fisher-Yates algorithm
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  
+
   // Return the first 'count' items or all if count > shuffled.length
   return shuffled.slice(0, Math.min(count, shuffled.length));
 }
