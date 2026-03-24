@@ -65,10 +65,10 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
 
   // Search functionality
   if (searchTerm) {
-    const term = searchTerm.toLowerCase();
+    const term = removeAccents(searchTerm.toLowerCase());
     filteredData = filteredData.filter(item =>
-      item.barbarism.toLowerCase().includes(term) ||
-      item.correctForms.some(form => form.toLowerCase().includes(term))
+      removeAccents(item.barbarism.toLowerCase()).includes(term) ||
+      item.correctForms.some(form => removeAccents(form.toLowerCase()).includes(term))
     );
   }
 
