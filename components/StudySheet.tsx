@@ -4,6 +4,11 @@ import { AlignJustify, ArrowDownAZ, ArrowDownZA, ArrowUpDown, Book, BookOpen, Ch
 import { QuizMode } from '../types/quiz';
 import { scrollToTop } from '../utils/scrollHelper';
 
+// Helper function to remove accents from a character
+function removeAccents(str: string): string {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 interface StudySheetProps {
   mode: QuizMode;
   onBack: () => void;
@@ -120,7 +125,9 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
   if (isAlphabeticalSort) {
     // Group data by first letter for alphabetical organization
     filteredData.forEach(item => {
-      const firstLetter = item.barbarism[0].toUpperCase();
+      // Remove accents from the first letter before grouping
+      const firstLetterWithAccent = item.barbarism[0].toUpperCase();
+      const firstLetter = removeAccents(firstLetterWithAccent).toUpperCase();
       if (!groupedData[firstLetter]) {
         groupedData[firstLetter] = [];
       }
