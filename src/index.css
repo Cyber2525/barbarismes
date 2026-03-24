@@ -8,6 +8,35 @@
   --secondary-color: #FFCD00; /* Catalan yellow/gold */
   --offline-indicator: rgba(245, 158, 11, 0.15); /* Amber with low opacity */
   --animation-duration: 200ms; /* Standard animation duration */
+  
+  /* Light mode colors */
+  --bg-primary: #fefce8; /* yellow-50 base */
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --text-primary: #1f2937;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+  --border-color: #e5e7eb;
+  --gradient-from: #fefce8;
+  --gradient-to: #fee2e2;
+}
+
+.dark {
+  --primary-color: #ef4444; /* Lighter red for dark mode */
+  --primary-light: #422006; /* Dark yellow-brown */
+  --secondary-color: #fbbf24; /* Brighter yellow */
+  --offline-indicator: rgba(245, 158, 11, 0.25);
+  
+  /* Dark mode colors */
+  --bg-primary: #111827; /* gray-900 */
+  --bg-secondary: #1f2937; /* gray-800 */
+  --bg-card: #1f2937;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #6b7280;
+  --border-color: #374151;
+  --gradient-from: #111827;
+  --gradient-to: #1c1917;
 }
 
 html {
@@ -17,9 +46,15 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #f9f9fb;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   -webkit-tap-highlight-color: transparent;
   position: relative;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body {
+  background-color: var(--bg-primary);
 }
 
 /* Button animations */
@@ -197,6 +232,10 @@ button:focus-visible {
   background: #f1f1f1;
 }
 
+.dark ::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
 ::-webkit-scrollbar-thumb {
   background: var(--primary-color);
   border-radius: 4px;
@@ -204,6 +243,10 @@ button:focus-visible {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #960c22;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #f87171;
 }
 
 /* Expandable content animations */

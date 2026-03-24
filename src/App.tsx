@@ -11,7 +11,7 @@ import { GameSettingsWidget } from './components/GameSettingsWidget';
 import { StudySheet } from './components/StudySheet';
 import { DialectStudySheet } from './components/DialectStudySheet';
 import { DialectQuiz } from './components/DialectQuiz';
-import { OfflineButton } from './components/OfflineButton';
+import { HamburgerMenu } from './components/HamburgerMenu';
 import { BookOpen, Globe, Languages, Pencil } from 'lucide-react';
 
 // Default quiz size
@@ -262,83 +262,39 @@ export function App() {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-gradient-to-br from-yellow-50 to-red-100 flex flex-col items-center justify-center" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      <div className="fixed inset-0 bg-gradient-to-br from-yellow-50 to-red-100 dark:from-gray-900 dark:to-gray-800 flex flex-col items-center justify-center" style={{ fontFamily: 'Poppins, sans-serif' }}>
         <div className="relative flex items-center justify-center w-16 h-16">
-          <div className="absolute h-16 w-16 rounded-full animate-spin bg-gradient-to-b from-red-600 to-transparent"></div>
-          <div className="absolute flex items-center justify-center bg-white rounded-full h-14 w-14">
+          <div className="absolute h-16 w-16 rounded-full animate-spin bg-gradient-to-b from-red-600 dark:from-red-500 to-transparent"></div>
+          <div className="absolute flex items-center justify-center bg-white dark:bg-gray-800 rounded-full h-14 w-14">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 4V6M12 18V20M6 12H4M20 12H18M18.364 5.636L16.95 7.05M7.05 16.95L5.636 18.364M7.05 7.05L5.636 5.636M18.364 18.364L16.95 16.95" 
-                stroke="#C8102E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                stroke="currentColor" className="text-red-600 dark:text-red-400" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
         </div>
-        <h1 className="mt-6 text-2xl font-bold text-red-800">Mots Correctes</h1>
-        <p className="text-red-600 mt-2">Preparant el teu quiz...</p>
+        <h1 className="mt-6 text-2xl font-bold text-red-800 dark:text-red-400">Mots Correctes</h1>
+        <p className="text-red-600 dark:text-red-300 mt-2">Preparant el teu quiz...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-red-100 py-6 md:py-8 px-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-red-100 dark:from-gray-900 dark:to-gray-800 py-6 md:py-8 px-4 transition-colors duration-300" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      {/* Hamburger Menu */}
+      <HamburgerMenu
+        appSection={appSection}
+        onSectionChange={setAppSection}
+        isStudyMode={isStudyMode}
+        onModeChange={setIsStudyMode}
+      />
+      
       <div className="container mx-auto">
         <header className="flex flex-col items-center justify-between mb-6 md:mb-8">
           <div className="flex items-center mb-4 w-full justify-center">
             <div className="text-center">
-              <h1 className="text-2xl md:text-3xl font-bold text-red-800">Estudiar Català CSI</h1>
-              <p className="text-sm md:text-base text-red-600">SACA UN 10 EN CATALAN</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-red-800 dark:text-red-400">Estudiar Catala CSI</h1>
+              <p className="text-sm md:text-base text-red-600 dark:text-red-300">SACA UN 10 EN CATALAN</p>
             </div>
-          </div>
-          
-          {/* App Section Selector */}
-          <div className="flex flex-wrap justify-center gap-3 mb-4 w-full">
-            <button 
-              onClick={() => setAppSection('dialectes')} 
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg transition-colors ${
-                appSection === 'dialectes' 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
-              }`}
-            >
-              <Globe size={18} />
-              <span>Dialectes</span>
-            </button>
-            <button 
-              onClick={() => setAppSection('barbarismes')} 
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg transition-colors ${
-                appSection === 'barbarismes' 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
-              }`}
-            >
-              <Languages size={18} />
-              <span>Barbarismes</span>
-            </button>
-          </div>
-          
-          {/* Mode Selector - Show for both sections */}
-          <div className="flex items-center justify-center flex-row space-x-2 md:space-x-4 w-full md:w-auto">
-            <button 
-              onClick={() => setIsStudyMode(true)} 
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                isStudyMode 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-white text-red-600 hover:bg-red-50'
-              }`}
-            >
-              <BookOpen size={18} />
-              <span>Mode Estudi</span>
-            </button>
-            <button 
-              onClick={() => setIsStudyMode(false)} 
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                !isStudyMode 
-                  ? 'bg-red-600 text-white' 
-                  : 'bg-white text-red-600 hover:bg-red-50'
-              }`}
-            >
-              <Pencil size={18} />
-              <span>Mode Quiz</span>
-            </button>
           </div>
         </header>
 
@@ -411,8 +367,7 @@ export function App() {
         </main>
 
         <footer className="text-center mt-8 md:mt-12 flex flex-col items-center">
-          <OfflineButton />
-          <p className="mt-4 text-sm text-red-400 text-left md:text-center">Català CSI - Por Víctor De Nadal - Colegio San Ignacio (CSI) Barcelona</p>
+          <p className="mt-4 text-sm text-red-400 dark:text-red-300/70 text-left md:text-center">Catala CSI - Por Victor De Nadal - Colegio San Ignacio (CSI) Barcelona</p>
         </footer>
       </div>
     </div>

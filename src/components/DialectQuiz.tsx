@@ -345,9 +345,9 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
     
     return (
       <div className="w-full">
-        <div className="mb-6 p-4 bg-white rounded-lg shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-800 mb-1">{question.prompt}</h3>
-          <p className="text-gray-700 p-3 bg-yellow-50 rounded-lg">
+        <div className="mb-6 p-4 bg-white dark:bg-gray-700 rounded-lg shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-1">{question.prompt}</h3>
+          <p className="text-gray-700 dark:text-gray-200 p-3 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg">
               {question.isPronunciation ? (
                 <>pronuncia: {question.content}</>
               ) : (
@@ -355,16 +355,16 @@ export function DialectQuiz({ onBack }: DialectQuizProps) {
               )}
             </p>
             {question.isPronunciation && (
-              <div className="text-xs text-amber-600 mt-1 italic">
-                <span className="font-medium">Nota:</span> Aquesta és la forma parlada, representa la pronunciació, no l'escriptura.
+              <div className="text-xs text-amber-600 dark:text-amber-400 mt-1 italic">
+                <span className="font-medium">Nota:</span> Aquesta es la forma parlada, representa la pronunciacio, no l'escriptura.
               </div>
             )}
           {question.additionalInfo && (
-            <p className="text-sm text-gray-500 mt-2 italic">{question.additionalInfo}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 italic">{question.additionalInfo}</p>
           )}
           {question.multipleCorrect && (
-            <p className="text-sm text-red-600 mt-2 font-medium">
-              Selecciona exactament 3 característiques correctes
+            <p className="text-sm text-red-600 dark:text-red-400 mt-2 font-medium">
+              Selecciona exactament 3 caracteristiques correctes
             </p>
           )}
         </div>

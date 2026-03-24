@@ -169,11 +169,11 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
   const phrasesCount = filteredData.filter(item => item.type === 'frase').length;
 
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-md p-4 md:p-6">
+    <div className="w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 md:p-6 transition-colors duration-300">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl md:text-2xl font-bold text-red-800">Full d'Estudi</h2>
+        <h2 className="text-xl md:text-2xl font-bold text-red-800 dark:text-red-400">Full d'Estudi</h2>
         {doneCount > 0 && (
-          <span className="text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-3 py-1">
+          <span className="text-sm font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-full px-3 py-1">
             {doneCount} / {quizData.filter(i => currentMode === 'tots' ? true : i.type === currentMode.slice(0, -1) + (currentMode === 'barbarismes' ? 'barbarisme' : 'frase')).length || totalItems} fets
           </span>
         )}
@@ -186,7 +186,7 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
           className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
             currentMode === 'tots'
               ? 'bg-red-600 text-white'
-              : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
+              : 'bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30'
           }`}
         >
           <BookOpen size={16} />
@@ -197,7 +197,7 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
           className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
             currentMode === 'barbarismes'
               ? 'bg-red-600 text-white'
-              : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
+              : 'bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30'
           }`}
         >
           <Book size={16} />
@@ -208,7 +208,7 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
           className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
             currentMode === 'frases'
               ? 'bg-red-600 text-white'
-              : 'bg-white text-red-600 border border-red-200 hover:bg-red-50'
+              : 'bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/30'
           }`}
         >
           <MessageSquareQuote size={16} />
@@ -223,13 +223,13 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Cerca paraules o expressions..."
-            className="w-full px-4 py-3 pl-10 rounded-lg border border-gray-300 focus:border-red-500 focus:ring-red-300 focus:outline-none"
+            className="w-full px-4 py-3 pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white focus:border-red-500 focus:ring-red-300 focus:outline-none"
           />
-          <Search className="absolute left-3 top-3.5 text-gray-400" size={18} />
+          <Search className="absolute left-3 top-3.5 text-gray-400 dark:text-gray-500" size={18} />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
             >
               <X size={18} />
             </button>
@@ -241,21 +241,21 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
             onClick={() => setFilterExpanded(!filterExpanded)}
             className={`flex items-center gap-2 text-sm font-medium px-3 py-2 rounded-lg transition-colors ${
               filterExpanded
-                ? 'bg-red-100 text-red-700'
-                : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400'
+                : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
             }`}
           >
             <SlidersHorizontal size={16} />
-            <span>Opcions d'ordenació i filtrat</span>
+            <span>Opcions d'ordenacio i filtrat</span>
             {filterExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
 
           {filterExpanded && (
-            <div className="mt-2 p-4 bg-white border border-gray-200 rounded-lg shadow-sm space-y-4">
+            <div className="mt-2 p-4 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-sm space-y-4">
 
               {/* Done filter */}
               <div>
-                <h4 className="text-md font-semibold text-gray-800 mb-2">Filtrar per estat:</h4>
+                <h4 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-2">Filtrar per estat:</h4>
                 <div className="flex flex-wrap gap-2">
                   {(
                     [
@@ -270,7 +270,7 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
                       className={`flex items-center gap-1.5 py-1.5 px-3 text-sm rounded-md transition-colors ${
                         doneFilter === opt.value
                           ? 'bg-green-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500'
                       }`}
                     >
                       {opt.value === 'done' && <CheckSquare size={14} />}
@@ -283,22 +283,22 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
 
               {/* Sort */}
               <div>
-                <h4 className="text-md font-semibold text-gray-800 mb-2">Ordenar per:</h4>
+                <h4 className="text-md font-semibold text-gray-800 dark:text-gray-100 mb-2">Ordenar per:</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                   <button
                     onClick={() => setSortBy('alphabetical-asc')}
                     className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-colors ${
-                      sortBy === 'alphabetical-asc' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      sortBy === 'alphabetical-asc' ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500'
                     }`}
                   >
                     <ArrowDownAZ size={16} />
-                    <span>Alfabètic (A-Z)</span>
+                    <span>Alfabetic (A-Z)</span>
                   </button>
 
                   <button
                     onClick={() => setSortBy('type')}
                     className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-colors ${
-                      sortBy === 'type' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      sortBy === 'type' ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500'
                     }`}
                   >
                     <Tags size={16} />
@@ -308,7 +308,7 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
                   <button
                     onClick={() => setSortBy('septet-funest')}
                     className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-colors ${
-                      sortBy === 'septet-funest' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      sortBy === 'septet-funest' ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500'
                     }`}
                   >
                     <FileWarning size={16} />
@@ -318,17 +318,17 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
                   <button
                     onClick={() => setSortBy('complexity')}
                     className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-colors ${
-                      sortBy === 'complexity' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      sortBy === 'complexity' ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500'
                     }`}
                   >
                     <ArrowUpDown size={16} />
-                    <span>Més variacions</span>
+                    <span>Mes variacions</span>
                   </button>
 
                   <button
                     onClick={() => setSortBy('done-first')}
                     className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-colors ${
-                      sortBy === 'done-first' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      sortBy === 'done-first' ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500'
                     }`}
                   >
                     <CheckSquare size={16} />
@@ -338,7 +338,7 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
                   <button
                     onClick={() => setSortBy('done-last')}
                     className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-colors ${
-                      sortBy === 'done-last' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      sortBy === 'done-last' ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500'
                     }`}
                   >
                     <Square size={16} />
@@ -351,7 +351,7 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
                       refreshRandomOrder();
                     }}
                     className={`flex items-center gap-2 py-2 px-3 text-sm rounded-md transition-colors ${
-                      sortBy === 'random' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      sortBy === 'random' ? 'bg-red-600 text-white' : 'bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-500'
                     }`}
                   >
                     <RefreshCw size={16} className={sortBy === 'random' ? 'animate-spin' : ''} />
@@ -362,22 +362,22 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
                 {sortBy === 'random' && (
                   <button
                     onClick={refreshRandomOrder}
-                    className="mt-2 flex items-center gap-2 py-1.5 px-3 text-sm rounded-md bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition-colors"
+                    className="mt-2 flex items-center gap-2 py-1.5 px-3 text-sm rounded-md bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/60 transition-colors"
                   >
                     <RefreshCw size={14} />
-                    <span>Reordenar aleatòriament</span>
+                    <span>Reordenar aleatoriament</span>
                   </button>
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-2 text-xs text-gray-500 pt-1 border-t border-gray-100">
-                <div className="px-2 py-1 bg-gray-100 rounded-full">Total: {totalItems} elements</div>
-                <div className="px-2 py-1 bg-green-50 text-green-700 rounded-full">Fets: {doneCount}</div>
+              <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-100 dark:border-gray-600">
+                <div className="px-2 py-1 bg-gray-100 dark:bg-gray-600 rounded-full">Total: {totalItems} elements</div>
+                <div className="px-2 py-1 bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-400 rounded-full">Fets: {doneCount}</div>
                 {septetFunestCount > 0 && (
-                  <div className="px-2 py-1 bg-red-50 text-red-600 rounded-full">Septet Funest: {septetFunestCount}</div>
+                  <div className="px-2 py-1 bg-red-50 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-full">Septet Funest: {septetFunestCount}</div>
                 )}
-                <div className="px-2 py-1 bg-gray-100 rounded-full">Paraules: {barbarismsCount}</div>
-                <div className="px-2 py-1 bg-gray-100 rounded-full">Frases: {phrasesCount}</div>
+                <div className="px-2 py-1 bg-gray-100 dark:bg-gray-600 rounded-full">Paraules: {barbarismsCount}</div>
+                <div className="px-2 py-1 bg-gray-100 dark:bg-gray-600 rounded-full">Frases: {phrasesCount}</div>
               </div>
             </div>
           )}
@@ -387,13 +387,13 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
       <div className="space-y-6">
         {letters.length === 0 ? (
           <div className="text-center py-10">
-            <p className="text-gray-500">No s'han trobat resultats amb aquests criteris de cerca.</p>
+            <p className="text-gray-500 dark:text-gray-400">No s'han trobat resultats amb aquests criteris de cerca.</p>
           </div>
         ) : (
           letters.map(letter => (
             <div key={letter} id={`letter-${letter}`} className="scroll-mt-4">
               {letter !== 'all' && !isRandomSort && (
-                <h3 className="text-lg font-bold text-red-700 border-b border-red-200 pb-1 mb-3">{letter}</h3>
+                <h3 className="text-lg font-bold text-red-700 dark:text-red-400 border-b border-red-200 dark:border-red-800 pb-1 mb-3">{letter}</h3>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {groupedData[letter].map((item, index) => {
@@ -403,10 +403,10 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
                       key={`${item.barbarism}-${index}`}
                       className={`p-3 rounded-lg border transition-colors ${
                         isDone
-                          ? 'border-green-300 bg-green-50'
+                          ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/30'
                           : item.isSeptetFunest
-                          ? 'border-red-300 bg-red-50'
-                          : 'border-gray-200 hover:border-red-200'
+                          ? 'border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/30'
+                          : 'border-gray-200 dark:border-gray-600 hover:border-red-200 dark:hover:border-red-700'
                       }`}
                     >
                       <div
@@ -419,48 +419,48 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
                             onClick={(e) => handleToggleDone(item.barbarism, e)}
                             aria-label={isDone ? 'Desmarcar com a fet' : 'Marcar com a fet'}
                             className={`mt-0.5 flex-shrink-0 transition-colors ${
-                              isDone ? 'text-green-600 hover:text-green-700' : 'text-gray-300 hover:text-green-500'
+                              isDone ? 'text-green-600 dark:text-green-400 hover:text-green-700' : 'text-gray-300 dark:text-gray-500 hover:text-green-500'
                             }`}
                           >
                             {isDone ? <CheckSquare size={18} /> : <Square size={18} />}
                           </button>
 
                           <div className="min-w-0">
-                            <div className={`font-medium ${isDone ? 'text-green-800 line-through decoration-green-400' : 'text-gray-800'}`}>
+                            <div className={`font-medium ${isDone ? 'text-green-800 dark:text-green-300 line-through decoration-green-400' : 'text-gray-800 dark:text-gray-100'}`}>
                               {item.barbarism}
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {item.type === 'frase' && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-300">
                                     <MessageSquareQuote size={12} className="mr-1" />
                                     Frase
                                   </span>
                                 )}
                                 {item.isSeptetFunest && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300">
                                     <FileWarning size={12} className="mr-1" />
                                     Septet Funest
                                   </span>
                                 )}
                                 {item.correctForms.length > 1 && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300">
                                     {item.correctForms.length} formes
                                   </span>
                                 )}
                                 {isDone && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300">
                                     Fet
                                   </span>
                                 )}
                               </div>
                             </div>
-                            <div className="text-sm text-gray-600">
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
                               {item.correctForms[0]}{item.correctForms.length > 1 ? ', ...' : ''}
                             </div>
                           </div>
                         </div>
 
                         <button
-                          className="text-gray-400 hover:text-red-600 p-1 flex-shrink-0"
+                          className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 p-1 flex-shrink-0"
                           aria-label={expandedItems[item.barbarism] ? 'Collapse' : 'Expand'}
                           onClick={(e) => { e.stopPropagation(); toggleItemExpand(item.barbarism); }}
                         >
@@ -469,13 +469,13 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
                       </div>
 
                       <div className={`expandable-content ${expandedItems[item.barbarism] ? 'expanded' : ''}`}>
-                        <div className="mt-2 pt-2 border-t border-gray-100">
-                          <div className="text-sm">
-                            <span className="font-medium text-gray-700">Formes correctes: </span>
+                        <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-600">
+                          <div className="text-sm text-gray-800 dark:text-gray-200">
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Formes correctes: </span>
                             {item.correctForms.join(', ')}
                           </div>
                           {item.hint && (
-                            <div className="mt-1 text-xs text-gray-600">
+                            <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
                               <span className="font-medium">Pista: </span>
                               {item.hint}
                             </div>
@@ -498,23 +498,23 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
             <a
               href="#"
               onClick={(e) => { e.preventDefault(); scrollToTop(); }}
-              className="px-3 py-2 bg-white rounded-lg shadow-lg border border-gray-200 text-sm font-medium hover:bg-red-100 hover:text-red-700 transition-colors"
+              className="px-3 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-400 transition-colors"
             >
               Tornar a dalt
             </a>
             <button
               onClick={onBack}
-              className="px-3 py-2 bg-white rounded-lg shadow-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-100 hover:text-red-700 transition-colors"
+              className="px-3 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-300 transition-colors"
             >
               Torna al Quiz
             </button>
           </div>
-          <div className="px-3 py-2 bg-white rounded-lg shadow-lg border border-gray-200 flex flex-wrap justify-center gap-1">
+          <div className="px-3 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 flex flex-wrap justify-center gap-1">
             {letters.map(letter => (
               <a
                 key={letter}
                 href={`#letter-${letter}`}
-                className="w-7 h-7 flex items-center justify-center rounded-lg text-sm font-medium hover:bg-red-100 hover:text-red-700 transition-colors"
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-400 transition-colors"
               >
                 {letter}
               </a>
@@ -528,13 +528,13 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
           <a
             href="#"
             onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
-            className="px-3 py-2 bg-white rounded-lg shadow-lg border border-gray-200 text-sm font-medium hover:bg-red-100 hover:text-red-700 transition-colors"
+            className="px-3 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-400 transition-colors"
           >
             Tornar a dalt
           </a>
           <button
             onClick={onBack}
-            className="px-3 py-2 bg-white rounded-lg shadow-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-100 hover:text-red-700 transition-colors"
+            className="px-3 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-700 dark:hover:text-red-300 transition-colors"
           >
             Anar al Quiz
           </button>

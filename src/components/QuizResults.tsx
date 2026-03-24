@@ -214,37 +214,37 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
   const displayItems = getAllDisplayItems();
 
   return (
-    <div className="w-full max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-4 md:p-6">
+    <div className="w-full max-w-md mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden p-4 md:p-6 transition-colors duration-300">
 
       {/* Dialog for orange (corrected) items */}
       {showCorrectedDialog && correctedPendingItems.length > 0 && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl p-5 max-w-sm w-full">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-5 max-w-sm w-full">
             <div className="flex items-center gap-2 mb-3">
-              <Squircle className="text-amber-500 flex-shrink-0" size={22} />
-              <h3 className="text-base font-semibold text-gray-800">
+              <Squircle className="text-amber-500" size={22} />
+              <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">
                 Registrar com a fets?
               </h3>
             </div>
-            <p className="text-sm text-gray-600 mb-3">
-              Has corregit {correctedPendingItems.length} element{correctedPendingItems.length > 1 ? 's' : ''} després de fallar:
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+              Has corregit {correctedPendingItems.length} element{correctedPendingItems.length > 1 ? 's' : ''} despres de fallar:
             </p>
-            <ul className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 mb-4 space-y-1 max-h-36 overflow-y-auto">
+            <ul className="text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 rounded-lg p-3 mb-4 space-y-1 max-h-36 overflow-y-auto">
               {correctedPendingItems.map(item => (
                 <li key={item.barbarism} className="flex items-center gap-1.5">
                   <Squircle size={12} className="flex-shrink-0" />
                   <span className="font-medium">{item.barbarism}</span>
-                  <span className="text-gray-500">→ {item.correctForms[0]}</span>
+                  <span className="text-gray-500 dark:text-gray-400">-{'>'} {item.correctForms[0]}</span>
                 </li>
               ))}
             </ul>
-            <p className="text-xs text-gray-500 mb-4">
-              Si els marques com a fets, podràs filtrar-los al quiz i al full d'estudi.
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              Si els marques com a fets, podras filtrar-los al quiz i al full d'estudi.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={handleSkipCorrected}
-                className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 Ometre
               </button>
@@ -261,15 +261,15 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
       )}
 
       <div className="text-left md:text-center mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Resultats del Quiz</h2>
-        <div className="text-5xl font-bold text-red-600 mb-2">{percentage}%</div>
-        <p className="text-gray-600 font-medium">{getResultMessage()}</p>
-        <p className="text-sm text-gray-500 mt-1">Has encertat {score} de {items.length} preguntes</p>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Resultats del Quiz</h2>
+        <div className="text-5xl font-bold text-red-600 dark:text-red-400 mb-2">{percentage}%</div>
+        <p className="text-gray-600 dark:text-gray-300 font-medium">{getResultMessage()}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Has encertat {score} de {items.length} preguntes</p>
       </div>
 
       <div className="mb-6">
-        <h3 className="text-md font-semibold text-gray-700 mb-2">Resum de les teves respostes:</h3>
-        <div className="divide-y divide-gray-100">
+        <h3 className="text-md font-semibold text-gray-700 dark:text-gray-200 mb-2">Resum de les teves respostes:</h3>
+        <div className="divide-y divide-gray-100 dark:divide-gray-700">
           {displayItems.map((item, index) => {
             const isOriginalItem = item.wasOriginallyCorrect;
             const answerState = isOriginalItem ? 2 : getAnswerState(index, item);
@@ -298,51 +298,51 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
               <div key={index} className="py-3 flex items-start">
                 <div className="mr-3 mt-1">
                   {answerState === 0 ? (
-                    <X className="text-red-500" size={18} />
+                    <X className="text-red-500 dark:text-red-400" size={18} />
                   ) : answerState === 1 ? (
-                    <Squircle className="text-amber-500" size={18} />
+                    <Squircle className="text-amber-500 dark:text-amber-400" size={18} />
                   ) : (
-                    <Check className="text-green-500" size={18} />
+                    <Check className="text-green-500 dark:text-green-400" size={18} />
                   )}
                 </div>
                 <div>
-                  <div className="font-medium text-gray-800">
+                  <div className="font-medium text-gray-800 dark:text-gray-100">
                     {item.barbarism}
                     {item.isSeptetFunest && (
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-300">
                         Septet Funest
                       </span>
                     )}
                     {isOriginalItem && (
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-300">
                         Encert inicial
                       </span>
                     )}
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
                     La teva resposta:{' '}
                     <span className={
-                      answerState === 0 ? 'text-red-600' :
-                        answerState === 1 ? 'text-amber-600' : 'text-green-600'
+                      answerState === 0 ? 'text-red-600 dark:text-red-400' :
+                        answerState === 1 ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'
                     }>{userAnswer}</span>
                   </div>
                   {answerState === 0 && (
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
                       Formes correctes: {item.correctForms.join(', ')}
                     </div>
                   )}
                   {(answerState === 1 || answerState === 2) && (
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
                       Forma correcta: {item.correctForms[0]}
                       {item.correctForms.length > 1 && (
-                        <span className="text-xs text-gray-500 ml-1">
-                          (també: {item.correctForms.slice(1).join(', ')})
+                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                          (tambe: {item.correctForms.slice(1).join(', ')})
                         </span>
                       )}
                     </div>
                   )}
                   {item.hint && (
-                    <div className="text-xs text-gray-500 mt-1 italic">{item.hint}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">{item.hint}</div>
                   )}
                 </div>
               </div>
@@ -350,17 +350,17 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
           })}
         </div>
 
-        <div className="mt-4 text-xs bg-gray-50 p-3 rounded-lg">
+        <div className="mt-4 text-xs bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg text-gray-700 dark:text-gray-300">
           <div className="flex items-center mb-1">
-            <Check className="text-green-500 mr-2" size={14} />
+            <Check className="text-green-500 dark:text-green-400 mr-2" size={14} />
             <span>Correctes a la primera</span>
           </div>
           <div className="flex items-center mb-1">
-            <Squircle className="text-amber-500 mr-2" size={14} />
-            <span>Corregides després</span>
+            <Squircle className="text-amber-500 dark:text-amber-400 mr-2" size={14} />
+            <span>Corregides despres</span>
           </div>
           <div className="flex items-center">
-            <X className="text-red-500 mr-2" size={14} />
+            <X className="text-red-500 dark:text-red-400 mr-2" size={14} />
             <span>Incorrectes</span>
           </div>
         </div>
