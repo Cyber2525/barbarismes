@@ -279,23 +279,19 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-red-100 dark:from-gray-900 dark:to-gray-800 py-6 md:py-8 px-4 transition-colors duration-300" style={{ fontFamily: 'Poppins, sans-serif' }}>
-      {/* Hamburger Menu */}
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-red-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-300" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      {/* Fixed blurred header + popup menu */}
       <HamburgerMenu
         appSection={appSection}
         onSectionChange={setAppSection}
         isStudyMode={isStudyMode}
         onModeChange={setIsStudyMode}
       />
-      
-      <div className="container mx-auto">
-        <header className="flex flex-col items-center justify-between mb-6 md:mb-8">
-          <div className="flex items-center mb-4 w-full justify-center">
-            <div className="text-center">
-              <h1 className="text-2xl md:text-3xl font-bold text-red-800 dark:text-red-400">Estudiar Catala CSI</h1>
-              <p className="text-sm md:text-base text-red-600 dark:text-red-300">SACA UN 10 EN CATALAN</p>
-            </div>
-          </div>
+
+      {/* pt-14 offsets the fixed 56px header; px/py for content padding */}
+      <div className="container mx-auto pt-20 pb-8 px-4">
+        <header className="sr-only">
+          <h1>Estudiar Catala CSI</h1>
         </header>
 
         <main className="flex flex-col items-center">
@@ -320,7 +316,7 @@ export function App() {
                 <>
                   {!quizState.completed ? (
                     <>
-                      <div className="w-full max-w-md bg-white rounded-xl shadow-md p-4 mb-6">
+                      <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 mb-6 transition-colors duration-300">
                         <QuizProgress 
                           current={quizState.currentIndex} 
                           total={quizState.items.length}
