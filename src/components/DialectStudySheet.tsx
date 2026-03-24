@@ -4,6 +4,11 @@ import { AlignJustify, ArrowDownAZ, Book, BookOpen, ChevronDown, ChevronUp, Glob
 import { DialectSortOption, DialectItem, DialectGroup } from '../types/dialect';
 import { scrollToTop } from '../utils/scrollHelper';
 
+// Helper function to remove accents from a character
+function removeAccents(str: string): string {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 interface DialectStudySheetProps {
   onBack: () => void;
 }
@@ -34,14 +39,14 @@ export function DialectStudySheet({ onBack }: DialectStudySheetProps) {
   
   // Search functionality
   if (searchTerm) {
-    const term = searchTerm.toLowerCase();
+    const term = removeAccents(searchTerm.toLowerCase());
     filteredItems = filteredItems.filter(item => 
-      item.name.toLowerCase().includes(term) || 
-      item.description.toLowerCase().includes(term) ||
-      item.characteristics.some(char => char.toLowerCase().includes(term)) ||
+      removeAccents(item.name.toLowerCase()).includes(term) || 
+      removeAccents(item.description.toLowerCase()).includes(term) ||
+      item.characteristics.some(char => removeAccents(char.toLowerCase()).includes(term)) ||
       item.examples.some(ex => 
-        ex.dialectText.toLowerCase().includes(term) || 
-        ex.standardText.toLowerCase().includes(term)
+        removeAccents(ex.dialectText.toLowerCase()).includes(term) || 
+        removeAccents(ex.standardText.toLowerCase()).includes(term)
       )
     );
   }

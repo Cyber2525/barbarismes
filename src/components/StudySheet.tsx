@@ -5,6 +5,11 @@ import { QuizMode } from '../types/quiz';
 import { scrollToTop } from '../utils/scrollHelper';
 import { getDoneItems, toggleDone } from '../utils/doneItems';
 
+// Helper function to remove accents from a character
+function removeAccents(str: string): string {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 interface StudySheetProps {
   mode: QuizMode;
   onBack: () => void;
@@ -60,10 +65,10 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
 
   // Search functionality
   if (searchTerm) {
-    const term = searchTerm.toLowerCase();
+    const term = removeAccents(searchTerm.toLowerCase());
     filteredData = filteredData.filter(item =>
-      item.barbarism.toLowerCase().includes(term) ||
-      item.correctForms.some(form => form.toLowerCase().includes(term))
+      removeAccents(item.barbarism.toLowerCase()).includes(term) ||
+      item.correctForms.some(form => removeAccents(form.toLowerCase()).includes(term))
     );
   }
 
@@ -146,7 +151,8 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
 
   if (isAlphabeticalSort) {
     filteredData.forEach(item => {
-      const firstLetter = item.barbarism[0].toUpperCase();
+      const firstLetterWithAccent = item.barbarism[0].toUpperCase();
+      const firstLetter = removeAccents(firstLetterWithAccent);
       if (!groupedData[firstLetter]) groupedData[firstLetter] = [];
       groupedData[firstLetter].push(item);
     });
