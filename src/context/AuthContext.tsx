@@ -9,8 +9,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isOnline: boolean;
-  signInWithEmail: (email: string) => Promise<{ error: Error | null }>;
-  verifyOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
+  requestOtp: (email: string) => Promise<{ error: Error | null }>;
+  verifyOtp: (email: string, code: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   syncNow: () => Promise<void>;
 }
@@ -73,21 +73,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await processOfflineQueue();
   };
 
-  const signInWithEmail = async (email: string) => {
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: true }
-    });
-    return { error };
+  const requestOtp = async (email: string) => {
+    try {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60000).toISOString();
+      
+      const { error } = await supabase.from('otp_sessions').insert({
+        email,
+        code,
+        expires_at: expiresAt,
+        verified: false
+      });
+      
+      return { error };
+    } catch (e) {
+      return { error: e as Error };
+    }
   };
 
-  const verifyOtp = async (email: string, token: string) => {
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token,
-      type: 'email'
-    });
-    return { error };
+  const verifyOtp = async (email: string, code: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('otp_sessions')
+        .select('*')
+        .eq('email', email)
+        .eq('code', code)
+        .gt('expires_at', new Date().toISOString())
+        .eq('verified', false)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (error || !data?.length) {
+        return { error: new Error('Codi incorrecte o expirat') };
+      }
+
+      const session = data[0];
+      
+      await supabase
+        .from('otp_sessions')
+        .update({ verified: true })
+        .eq('id', session.id);
+
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password: Math.random().toString(36).slice(-16),
+        options: { 
+          data: { email },
+          emailRedirectTo: window.location.origin 
+        }
+      });
+
+      if (signUpError?.status === 422) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password: 'otp_login'
+        });
+        if (signInError) {
+          const { error: updateError } = await supabase.auth.updateUser({ password: Math.random().toString(36).slice(-16) });
+          if (updateError) return { error: updateError };
+        }
+      }
+
+      return { error: null };
+    } catch (e) {
+      return { error: e as Error };
+    }
   };
 
   const signOut = async () => {
@@ -105,7 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isOnline, signInWithEmail, verifyOtp, signOut, syncNow }}>
+    <AuthContext.Provider value={{ user, session, loading, isOnline, requestOtp, verifyOtp, signOut, syncNow }}>
       {children}
     </AuthContext.Provider>
   );

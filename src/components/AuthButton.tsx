@@ -8,7 +8,7 @@ import { User, LogOut, Cloud, CloudOff, Download, Upload, RefreshCw, Mail, Alert
 type AuthStep = 'idle' | 'email' | 'otp';
 
 export function AuthButton() {
-  const { user, loading, isOnline, signInWithEmail, verifyOtp, signOut, syncNow } = useAuth();
+  const { user, loading, isOnline, requestOtp, verifyOtp, signOut, syncNow } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [authStep, setAuthStep] = useState<AuthStep>('idle');
@@ -26,7 +26,7 @@ export function AuthButton() {
     if (!email.includes('@')) { setAuthError('Correu no valid'); return; }
     setSending(true);
     setAuthError('');
-    const { error } = await signInWithEmail(email);
+    const { error } = await requestOtp(email);
     setSending(false);
     if (error) { setAuthError(error.message); return; }
     setAuthStep('otp');
