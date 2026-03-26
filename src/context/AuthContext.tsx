@@ -9,8 +9,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isOnline: boolean;
-  requestOtp: (email: string) => Promise<{ error: Error | null }>;
-  verifyOtp: (email: string, code: string) => Promise<{ error: Error | null }>;
+  signInWithEmail: (email: string) => Promise<{ error: Error | null }>;
+  verifyOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   syncNow: () => Promise<void>;
 }
