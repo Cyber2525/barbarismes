@@ -12,21 +12,12 @@ import { StudySheet } from './components/StudySheet';
 import { DialectStudySheet } from './components/DialectStudySheet';
 import { DialectQuiz } from './components/DialectQuiz';
 import { OfflineButton } from './components/OfflineButton';
-import { AuthButton } from './components/AuthButton';
-import { AuthProvider } from './context/AuthContext';
 import { BookOpen, Globe, Languages, Pencil } from 'lucide-react';
 
 // Default quiz size
 const DEFAULT_QUIZ_SIZE = 20;
 
-  return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
-  );
-}
-
-function AppContent() {
+export function App() {
   const [appSection, setAppSection] = useState<'barbarismes' | 'dialectes'>(() => {
     const savedSection = localStorage.getItem('appSection');
     return (savedSection as 'barbarismes' | 'dialectes') || 'dialectes';
@@ -291,9 +282,6 @@ function AppContent() {
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-red-100 py-6 md:py-8 px-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
       <div className="container mx-auto">
         <header className="flex flex-col items-center justify-between mb-6 md:mb-8">
-          <div className="w-full flex justify-end mb-4 px-2">
-            <AuthButton />
-          </div>
           <div className="flex items-center mb-4 w-full justify-center">
             <div className="text-center">
               <h1 className="text-2xl md:text-3xl font-bold text-red-800">Estudiar Català CSI</h1>

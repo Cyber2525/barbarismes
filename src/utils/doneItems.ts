@@ -1,5 +1,3 @@
-import { addToOfflineQueue } from '../lib/sync';
-
 const DONE_ITEMS_KEY = 'doneBarbarismes';
 
 export function getDoneItems(): Set<string> {
@@ -20,16 +18,12 @@ export function markAsDone(barbarism: string): void {
   const done = getDoneItems();
   done.add(barbarism);
   saveDoneItems(done);
-  // Queue for sync if user is logged in
-  addToOfflineQueue('add', barbarism);
 }
 
 export function unmarkAsDone(barbarism: string): void {
   const done = getDoneItems();
   done.delete(barbarism);
   saveDoneItems(done);
-  // Queue for sync if user is logged in
-  addToOfflineQueue('remove', barbarism);
 }
 
 export function toggleDone(barbarism: string): boolean {
@@ -37,21 +31,16 @@ export function toggleDone(barbarism: string): boolean {
   if (done.has(barbarism)) {
     done.delete(barbarism);
     saveDoneItems(done);
-    addToOfflineQueue('remove', barbarism);
     return false;
   } else {
     done.add(barbarism);
     saveDoneItems(done);
-    addToOfflineQueue('add', barbarism);
     return true;
   }
 }
 
 export function markManyAsDone(barbarisms: string[]): void {
   const done = getDoneItems();
-  barbarisms.forEach(b => {
-    done.add(b);
-    addToOfflineQueue('add', b);
-  });
+  barbarisms.forEach(b => done.add(b));
   saveDoneItems(done);
 }
