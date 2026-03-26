@@ -6,54 +6,28 @@ import { syncToCloud } from '../lib/sync';
 import { User, LogOut, Cloud, CloudOff, Download, Upload, RefreshCw, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 
 export function AuthButton() {
-  const { user, loading, isOnline, sendOTP, verifyOTP, signOut, syncNow } = useAuth();
+  const { user, loading, isOnline, signInWithEmail, signOut, syncNow } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showEmailInput, setShowEmailInput] = useState(false);
-  const [showCodeInput, setShowCodeInput] = useState(false);
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState('');
-  const [codeError, setCodeError] = useState('');
   const [importData, setImportData] = useState<CSIData | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [sending, setSending] = useState(false);
-  const [verifying, setVerifying] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSendOTP = async () => {
+  const handleEmailLogin = async () => {
     if (!email.includes('@')) {
       setEmailError('Correu no valid');
       return;
     }
     setEmailError('');
-    setSending(true);
-    const { error } = await sendOTP(email);
-    setSending(false);
+    const { error } = await signInWithEmail(email);
     if (error) {
       setEmailError(error.message);
     } else {
-      setShowEmailInput(false);
-      setShowCodeInput(true);
-    }
-  };
-
-  const handleVerifyCode = async () => {
-    if (code.length !== 4 || !/^\d+$/.test(code)) {
-      setCodeError('Codi de 4 dígits requerit');
-      return;
-    }
-    setCodeError('');
-    setVerifying(true);
-    const { error } = await verifyOTP(email, code);
-    setVerifying(false);
-    if (error) {
-      setCodeError(error.message);
-    } else {
-      setShowCodeInput(false);
-      setEmail('');
-      setCode('');
-      setShowMenu(false);
+      setEmailSent(true);
     }
   };
 
@@ -129,24 +103,13 @@ export function AuthButton() {
         </button>
         
         {showMenu && (
-          <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-red-100 z-50 p-4">
-            {showCodeInput ? (
-              <div>
-                <p className="text-sm text-gray-700 mb-3">Codi enviat a <strong>{email}</strong></p>
-                <label className="text-sm text-gray-700 mb-1 block">Codi OTP (4 dígits)</label>
-                <input
-                  type="text"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  placeholder="0000"
-                  maxLength={4}
-                  className="w-full px-4 py-3 border-2 border-red-300 rounded-lg text-center text-2xl font-bold tracking-widest mb-2"
-                  onKeyDown={(e) => e.key === 'Enter' && handleVerifyCode()}
-                  autoFocus
-                />
-                {codeError && <p className="text-xs text-red-600 mb-2 flex items-center gap-1"><AlertCircle size={12} />{codeError}</p>}
-                <button onClick={handleVerifyCode} disabled={verifying} className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50">{verifying ? 'Verificant...' : 'Verificar'}</button>
-                <button onClick={() => { setShowCodeInput(false); setShowEmailInput(true); setCode(''); }} className="w-full mt-2 text-sm text-gray-500 hover:text-gray-700">Enrere</button>
+          <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-red-100 z-50 p-4">
+            {emailSent ? (
+              <div className="text-center py-2">
+                <CheckCircle size={32} className="text-green-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-700">Comprova el teu correu!</p>
+                <p className="text-xs text-gray-500 mt-1">Fes clic a l&apos;enllac per iniciar sessio</p>
+                <button onClick={() => { setEmailSent(false); setShowMenu(false); }} className="mt-3 text-sm text-red-600 hover:underline">Tancar</button>
               </div>
             ) : showEmailInput ? (
               <div>
@@ -157,12 +120,11 @@ export function AuthButton() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="el-teu@correu.cat"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2"
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendOTP()}
-                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && handleEmailLogin()}
                 />
                 {emailError && <p className="text-xs text-red-600 mb-2 flex items-center gap-1"><AlertCircle size={12} />{emailError}</p>}
-                <button onClick={handleSendOTP} disabled={sending} className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm disabled:opacity-50">{sending ? 'Enviant...' : 'Enviar Codi'}</button>
-                <button onClick={() => setShowEmailInput(false)} className="w-full mt-2 text-sm text-gray-500 hover:text-gray-700">Tancar</button>
+                <button onClick={handleEmailLogin} className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm">Enviar Magic Link</button>
+                <button onClick={() => setShowEmailInput(false)} className="w-full mt-2 text-sm text-gray-500 hover:text-gray-700">Enrere</button>
               </div>
             ) : (
               <>
@@ -184,8 +146,6 @@ export function AuthButton() {
                 </button>
               </>
             )}
-          </div>
-        )}
           </div>
         )}
         <input ref={fileInputRef} type="file" accept=".csi" onChange={handleFileChange} className="hidden" />

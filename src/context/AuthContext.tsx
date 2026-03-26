@@ -9,8 +9,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isOnline: boolean;
-  sendOTP: (email: string) => Promise<{ error: Error | null }>;
-  verifyOTP: (email: string, token: string) => Promise<{ error: Error | null }>;
+  signInWithEmail: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   syncNow: () => Promise<void>;
 }
@@ -73,19 +72,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await processOfflineQueue();
   };
 
-  const sendOTP = async (email: string) => {
+  const signInWithEmail = async (email: string) => {
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: true }
-    });
-    return { error };
-  };
-
-  const verifyOTP = async (email: string, token: string) => {
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token,
-      type: 'email'
+      options: { emailRedirectTo: window.location.origin }
     });
     return { error };
   };
@@ -105,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isOnline, sendOTP, verifyOTP, signOut, syncNow }}>
+    <AuthContext.Provider value={{ user, session, loading, isOnline, signInWithEmail, signOut, syncNow }}>
       {children}
     </AuthContext.Provider>
   );
