@@ -9,8 +9,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isOnline: boolean;
-  signInWithGoogle: () => Promise<void>;
-  signInWithApple: () => Promise<void>;
+  signInWithEmail: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   syncNow: () => Promise<void>;
 }
@@ -73,18 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await processOfflineQueue();
   };
 
-  const signInWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin }
+  const signInWithEmail = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.origin }
     });
-  };
-
-  const signInWithApple = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'apple',
-      options: { redirectTo: window.location.origin }
-    });
+    return { error };
   };
 
   const signOut = async () => {
@@ -102,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isOnline, signInWithGoogle, signInWithApple, signOut, syncNow }}>
+    <AuthContext.Provider value={{ user, session, loading, isOnline, signInWithEmail, signOut, syncNow }}>
       {children}
     </AuthContext.Provider>
   );
