@@ -1,8 +1,11 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
+import emailjs from '@emailjs/browser';
 import { supabase } from '../lib/supabase';
 import { syncFromCloud, syncToCloud, processOfflineQueue } from '../lib/sync';
 import { getDoneItems, saveDoneItems } from '../utils/doneItems';
+
+emailjs.init('cJREF_dBVmklXDxVe');
 
 interface AuthContextType {
   user: User | null;
@@ -87,34 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (dbError) return { error: dbError };
 
-      const resendKey = import.meta.env.VITE_RESEND_API_KEY;
-      const emailResponse = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${resendKey}`
-        },
-        body: JSON.stringify({
-          from: 'onboarding@resend.dev',
-          to: email,
-          subject: 'Codi de verificació - Barbarismes',
-          html: `
-            <div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto;padding:24px">
-              <h2 style="color:#dc2626">Codi de verificació</h2>
-              <p>Introdueix aquest codi a l'aplicació:</p>
-              <div style="background:#f5f5f5;border-radius:8px;padding:24px;text-align:center;margin:16px 0">
-                <span style="font-size:40px;font-weight:bold;letter-spacing:12px;color:#dc2626">${code}</span>
-              </div>
-              <p style="color:#666;font-size:13px">Expira en 10 minuts. Si no has fet aquesta sol·licitud, ignora aquest correu.</p>
-            </div>
-          `
-        })
+      await emailjs.send('service_barbarismes', 'template_otp', {
+        to_email: email,
+        otp_code: code,
       });
-
-      if (!emailResponse.ok) {
-        const errorData = await emailResponse.json().catch(() => ({ message: 'Error desconegut' }));
-        return { error: new Error(errorData.message || 'Error enviant email') };
-      }
 
       return { error: null };
     } catch (e) {
