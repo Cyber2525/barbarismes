@@ -150,7 +150,7 @@ export function AuthButton() {
               <div>
                 <p className="text-sm font-medium text-gray-800 mb-1">Codi de verificacio</p>
                 <p className="text-xs text-gray-500 mb-4">Introdueix el codi de 6 digits enviat a <span className="font-medium text-gray-700">{email}</span></p>
-                <div className="flex gap-1 justify-center mb-3">
+                <div className="flex gap-2 justify-center mb-3">
                   {otp.map((digit, i) => (
                     <input
                       key={i}
@@ -161,7 +161,7 @@ export function AuthButton() {
                       value={digit}
                       onChange={e => handleOtpInput(i, e.target.value)}
                       onKeyDown={e => handleOtpKeyDown(i, e)}
-                      className="w-8 h-10 text-center text-lg font-bold border-2 border-gray-300 rounded-md focus:border-red-500 focus:outline-none"
+                      className="w-10 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none"
                     />
                   ))}
                 </div>
