@@ -9,7 +9,7 @@ export default async function handler(req: any, res: any) {
   if (!email || !code) return res.status(400).json({ error: 'Missing email or code' });
 
   try {
-    const result = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: 'noreply@barbarismes.cat',
       to: email,
       subject: 'Codi de verificació - Barbarismes',
@@ -29,12 +29,13 @@ export default async function handler(req: any, res: any) {
       `
     });
 
-    if (result.error) {
-      return res.status(400).json({ error: result.error.message });
+    if (error) {
+      return res.status(400).json({ error: error.message });
     }
 
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, messageId: data?.id });
   } catch (error) {
+    console.error('[v0] Resend error:', error);
     return res.status(500).json({ error: (error as Error).message });
   }
 }
