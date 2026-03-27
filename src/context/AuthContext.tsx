@@ -75,17 +75,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const requestOtp = async (email: string) => {
     try {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60000).toISOString();
-      
-      const { error } = await supabase.from('otp_sessions').insert({
-        email,
-        code,
-        expires_at: expiresAt,
-        verified: false
+      const response = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
       });
-      
-      return { error };
+
+      if (!response.ok) {
+        const error = await response.json();
+        return { error: new Error(error.error || 'Error al enviar el codi') };
+      }
+
+      return { error: null };
     } catch (e) {
       return { error: e as Error };
     }
