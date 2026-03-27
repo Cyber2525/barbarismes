@@ -2,10 +2,5 @@
   "installCommand": "pnpm install --no-frozen-lockfile",
   "git": {
     "deploymentEnabled": false
-  },
-  "functions": {
-    "api/**/*.ts": {
-      "runtime": "nodejs20.x"
-    }
   }
 }
