@@ -78,14 +78,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60000).toISOString();
       
-      const { error } = await supabase.from('otp_sessions').insert({
+      const { error: dbError } = await supabase.from('otp_sessions').insert({
         email,
         code,
         expires_at: expiresAt,
         verified: false
       });
       
-      return { error };
+      if (dbError) return { error: dbError };
+
+      const emailResponse = await fetch('/api/send-otp-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code })
+      });
+
+      if (!emailResponse.ok) {
+        const errorData = await emailResponse.json();
+        return { error: new Error(errorData.error || 'Error enviando email') };
+      }
+
+      return { error: null };
     } catch (e) {
       return { error: e as Error };
     }
