@@ -293,32 +293,6 @@ export const cloudSync = {
   },
 };
 
-// Subscribe to realtime changes for this user's row
-// Returns an unsubscribe function
-export function subscribeRealtime(email: string, onRemoteChange: () => void): () => void {
-  if (!isSupabaseConfigured() || !supabase) return () => {};
-
-  const channel = supabase
-    .channel(`progress:${email}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'users_progress',
-        filter: `email=eq.${email}`,
-      },
-      () => {
-        onRemoteChange();
-      }
-    )
-    .subscribe();
-
-  return () => {
-    supabase!.removeChannel(channel);
-  };
-}
-
 // Auto-sync when coming back online
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
