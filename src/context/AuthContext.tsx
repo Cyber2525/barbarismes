@@ -4,20 +4,12 @@ import { supabase } from '../lib/supabase';
 import { syncFromCloud, syncToCloud, processOfflineQueue } from '../lib/sync';
 import { getDoneItems, saveDoneItems } from '../utils/doneItems';
 
-declare const emailjs: {
-  send: (serviceId: string, templateId: string, params: Record<string, string>) => Promise<{ status: number; text: string }>;
-};
-
-// Fixed password per email — deterministic so user can always sign in again
-const getPasswordForEmail = (email: string) => `barb_${btoa(email)}_otp`;
-
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   isOnline: boolean;
-  requestOtp: (email: string) => Promise<{ error: Error | null }>;
-  verifyOtp: (email: string, code: string) => Promise<{ error: Error | null }>;
+  signInWithEmail: (email: string) => Promise<{ error: Error | null; sent: boolean }>;
   signOut: () => Promise<void>;
   syncNow: () => Promise<void>;
 }
