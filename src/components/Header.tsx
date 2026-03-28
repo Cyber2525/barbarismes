@@ -108,13 +108,13 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       if (user) {
         // Get cloud progress
         const cloudProgress = await cloudSync.loadProgress(email);
-        
+
         // Get current local progress
         const localBarbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
         const localDialectes = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
         const hasLocalProgress = localBarbarismes.length > 0 || localDialectes.length > 0;
         const hasCloudProgress = cloudProgress && (cloudProgress.barbarismes.length > 0 || cloudProgress.dialectes.length > 0);
-        
+
         // If both have data, show merge/replace dialog
         if (hasLocalProgress && hasCloudProgress) {
           setPendingLoginEmail(email);
@@ -125,7 +125,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
           setSyncStatus('idle');
           return;
         }
-        
+
         // If only cloud has data, use cloud
         if (hasCloudProgress && cloudProgress) {
           localStorage.setItem('fets_current_email', email);
@@ -144,7 +144,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
           onProgressUpdate(localBarbarismes, localDialectes);
           dispatchProgressUpdate();
         }
-        
+
         setShowLoginForm(false);
         setEmail('');
         setSyncStatus('success');
@@ -162,17 +162,17 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   // Handle login merge/replace confirmation
   const handleLoginConfirm = async (mode: 'merge' | 'replace') => {
     if (!pendingLoginEmail || !pendingCloudProgress) return;
-    
+
     setIsSyncing(true);
     setSyncStatus('syncing');
-    
+
     try {
       const localBarbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
       const localDialectes = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
-      
+
       let finalBarbarismes: string[];
       let finalDialectes: string[];
-      
+
       if (mode === 'merge') {
         // Union of both
         finalBarbarismes = Array.from(new Set([...localBarbarismes, ...pendingCloudProgress.barbarismes]));
@@ -182,15 +182,15 @@ export function Header({ onProgressUpdate }: HeaderProps) {
         finalBarbarismes = pendingCloudProgress.barbarismes;
         finalDialectes = pendingCloudProgress.dialectes;
       }
-      
+
       // Save to localStorage
       localStorage.setItem('fets_current_email', pendingLoginEmail);
       localStorage.setItem('doneBarbarismes', JSON.stringify(finalBarbarismes));
       localStorage.setItem('doneDialectes', JSON.stringify(finalDialectes));
-      
+
       // Save merged/final to cloud
       await cloudSync.saveProgress(pendingLoginEmail, finalBarbarismes, finalDialectes);
-      
+
       setCurrentUser(pendingLoginEmail);
       onProgressUpdate(finalBarbarismes, finalDialectes);
       dispatchProgressUpdate();
@@ -208,16 +208,16 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const handleLogout = () => {
     // Clear user session
     localStorage.removeItem('fets_current_email');
-    
+
     // Clear FETS progress from localStorage on logout
     localStorage.removeItem('doneBarbarismes');
     localStorage.removeItem('doneDialectes');
-    
+
     setCurrentUser(null);
     setEmail('');
     setShowUserMenu(false);
     setSyncStatus('idle');
-    
+
     // Notify App to refresh the UI with empty progress
     onProgressUpdate([], []);
     dispatchProgressUpdate();
@@ -303,12 +303,12 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     try {
       // Delete account from Supabase
       await cloudSync.deleteAccount(currentUser);
-      
+
       // Clear all local data
       localStorage.removeItem('fets_current_email');
       localStorage.removeItem('doneBarbarismes');
       localStorage.removeItem('doneDialectes');
-      
+
       setCurrentUser(null);
       setShowUserMenu(false);
       setShowDeleteConfirm(false);
@@ -349,7 +349,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                 >
                   <Upload size={16} />
                 </button>
-                
+
                 <div ref={loginRef} className="relative">
                   <button
                     onClick={() => setShowLoginForm(v => !v)}
@@ -549,7 +549,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
           <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
             <h3 className="text-base font-semibold text-red-600 mb-2">Eliminar compte i dades</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Aquesta acció eliminarà permanentment el teu compte <strong>{currentUser}</strong> i tots els dats de progres de Supabase. No es pot desfer.
+              Aquesta acció eliminarà permanentment el teu compte <strong>{currentUser}</strong> i totes les seves les dades. Això es una accio irreversible
             </p>
             <div className="space-y-2">
               <button
