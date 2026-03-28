@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload } from 'lucide-react';
+import { LogIn, LogOut, WifiOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload, Wifi } from 'lucide-react';
 import { cloudSync } from '../lib/cloudSync';
 import { downloadCSI, readCSIFile, mergeCSIData, CSIData } from '../lib/csiExport';
 import { dispatchProgressUpdate } from '../utils/doneItems';
@@ -22,6 +22,12 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [pendingChanges, setPendingChanges] = useState(0);
+
+  // Live sync state
+  const [liveSync, setLiveSync] = useState<boolean>(() => localStorage.getItem('fets_live_sync') !== 'false');
+  const [liveSyncHovered, setLiveSyncHovered] = useState(false);
+  const isSyncingRef = useRef(false);
+  const liveSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Login form state
   const [showLoginForm, setShowLoginForm] = useState(false);
@@ -101,6 +107,28 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Live sync loop — schedules next sync 2s after the previous one finishes
+  useEffect(() => {
+    if (!liveSync || !currentUser || !isOnline) {
+      if (liveSyncTimerRef.current) clearTimeout(liveSyncTimerRef.current);
+      return;
+    }
+
+    const schedule = () => {
+      liveSyncTimerRef.current = setTimeout(async () => {
+        if (!isSyncingRef.current) {
+          await handleSync();
+        }
+        schedule();
+      }, 2000);
+    };
+
+    schedule();
+    return () => {
+      if (liveSyncTimerRef.current) clearTimeout(liveSyncTimerRef.current);
+    };
+  }, [liveSync, currentUser, isOnline, handleSync]);
 
   const validateEmail = (value: string): boolean => {
     if (!cloudSync.validateEmail(value)) {
@@ -243,6 +271,8 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
   const handleSync = useCallback(async () => {
     if (!currentUser || !isOnline) return;
+    if (isSyncingRef.current) return;
+    isSyncingRef.current = true;
     setIsSyncing(true);
     setSyncStatus('syncing');
     try {
@@ -254,10 +284,19 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     } catch {
       setSyncStatus('error');
     } finally {
+      isSyncingRef.current = false;
       setIsSyncing(false);
       setTimeout(() => setSyncStatus('idle'), 2000);
     }
   }, [currentUser, isOnline, onProgressUpdate]);
+
+  const toggleLiveSync = useCallback(() => {
+    setLiveSync(prev => {
+      const next = !prev;
+      localStorage.setItem('fets_live_sync', String(next));
+      return next;
+    });
+  }, []);
 
   const handleExport = () => {
     const barbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
@@ -439,50 +478,106 @@ export function Header({ onProgressUpdate }: HeaderProps) {
               </>
             )}
 
-            {/* --- LOGGED IN: status + user button --- */}
+            {/* --- LOGGED IN: live indicator + user button --- */}
             {currentUser && (
               <>
-                {/* Sync indicator only */}
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <span
-                    className="transition-opacity duration-300"
-                    style={{ opacity: syncStatus === 'syncing' ? 1 : 0, position: 'absolute', pointerEvents: 'none' }}
-                  >
+                {/* Status indicator: pulsing red dot (live) or sync/check/error icon */}
+                <div className="relative flex items-center justify-center" style={{ width: 18, height: 18 }}>
+                  {/* Red pulsing dot — visible when live and idle */}
+                  <span className="transition-opacity duration-300 absolute inset-0 flex items-center justify-center"
+                    style={{ opacity: liveSync && syncStatus === 'idle' ? 1 : 0, pointerEvents: 'none' }}>
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-60" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                    </span>
+                  </span>
+                  {/* Spinning sync */}
+                  <span className="transition-opacity duration-300 absolute inset-0 flex items-center justify-center"
+                    style={{ opacity: syncStatus === 'syncing' ? 1 : 0, pointerEvents: 'none' }}>
                     <RefreshCw size={13} className="animate-spin text-blue-500" />
                   </span>
-                  <span
-                    className="transition-opacity duration-300"
-                    style={{ opacity: syncStatus === 'success' ? 1 : 0, position: 'absolute', pointerEvents: 'none' }}
-                  >
+                  {/* Success */}
+                  <span className="transition-opacity duration-300 absolute inset-0 flex items-center justify-center"
+                    style={{ opacity: syncStatus === 'success' ? 1 : 0, pointerEvents: 'none' }}>
                     <CheckCircle size={13} className="text-green-500" />
                   </span>
-                  <span
-                    className="transition-opacity duration-300"
-                    style={{ opacity: syncStatus === 'error' ? 1 : 0, position: 'absolute', pointerEvents: 'none' }}
-                  >
+                  {/* Error */}
+                  <span className="transition-opacity duration-300 absolute inset-0 flex items-center justify-center"
+                    style={{ opacity: syncStatus === 'error' ? 1 : 0, pointerEvents: 'none' }}>
                     <AlertCircle size={13} className="text-red-500" />
                   </span>
-                  {/* Invisible spacer so the area doesn't collapse */}
-                  <span className="invisible"><RefreshCw size={13} /></span>
-                  {pendingChanges > 0 && (
-                    <span className="bg-yellow-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">{pendingChanges}</span>
-                  )}
                 </div>
 
                 {/* User menu button */}
                 <div ref={userMenuRef} className="relative">
                   <button
-                    onClick={() => setShowUserMenu(v => !v)}
+                    onClick={() => {
+                      if (!liveSync) {
+                        handleSync();
+                      } else {
+                        setShowUserMenu(v => !v);
+                      }
+                    }}
+                    onMouseEnter={() => setLiveSyncHovered(true)}
+                    onMouseLeave={() => setLiveSyncHovered(false)}
+                    onContextMenu={(e) => { e.preventDefault(); setShowUserMenu(v => !v); }}
                     className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                   >
-                    {isOnline ? <Cloud size={15} className="text-white" /> : <CloudOff size={15} className="text-white" />}
-                    <span className="font-medium">{displayName}</span>
+                    {/* Icon: double-wifi when live, RefreshCw when not */}
+                    {liveSync ? (
+                      <span className="relative inline-flex items-center justify-center w-4 h-4">
+                        <Wifi size={14} className="text-white absolute" style={{ opacity: 1 }} />
+                        <Wifi size={9} className="text-white absolute" style={{ bottom: -2, right: -3, opacity: 0.75 }} />
+                      </span>
+                    ) : (
+                      isOnline
+                        ? <RefreshCw size={15} className="text-white" />
+                        : <WifiOff size={15} className="text-white" />
+                    )}
+                    <span className="font-medium">
+                      {liveSync && liveSyncHovered ? 'Sincronitzar ara' : liveSync ? 'Sync live' : displayName}
+                    </span>
                   </button>
+
+                  {/* Dropdown — click button when live=off opens menu via right-click / chevron; when live=on left-click opens menu */}
+                  {/* Actually: when live=off, click = sync now; right-click = menu. When live=on, click = menu */}
+                  {!liveSync && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowUserMenu(v => !v); }}
+                      className="absolute -right-1 -top-1 w-4 h-4 bg-red-700 rounded-full flex items-center justify-center hover:bg-red-800 transition-colors"
+                      title="Menú"
+                    >
+                      <span className="text-white text-[8px] font-bold leading-none">▾</span>
+                    </button>
+                  )}
 
                   {showUserMenu && (
                     <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
                       <p className="text-sm font-semibold text-gray-800 mb-3">{currentUser}</p>
                       <div className="space-y-1">
+
+                        {/* Live sync toggle row */}
+                        <div className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                          <div className="flex items-center gap-2">
+                            {liveSync ? (
+                              <span className="relative inline-flex items-center justify-center w-4 h-4">
+                                <Wifi size={14} className="text-red-500 absolute" />
+                                <Wifi size={9} className="text-red-400 absolute" style={{ bottom: -2, right: -3 }} />
+                              </span>
+                            ) : (
+                              <RefreshCw size={14} className="text-gray-400" />
+                            )}
+                            <span className="text-sm text-gray-700">Sync en viu</span>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleLiveSync(); }}
+                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${liveSync ? 'bg-red-500' : 'bg-gray-300'}`}
+                            aria-pressed={liveSync}
+                          >
+                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${liveSync ? 'translate-x-[18px]' : 'translate-x-1'}`} />
+                          </button>
+                        </div>
+
                         <button
                           onClick={() => { handleSync(); setShowUserMenu(false); }}
                           disabled={isSyncing || !isOnline}
