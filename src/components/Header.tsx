@@ -588,23 +588,18 @@ export function Header({ onProgressUpdate }: HeaderProps) {
               </button>
 
               {/* Confirmation text field */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-2">
-                  Escriu &quot;ELIMINAR&quot; per continuar
-                </label>
-                <input
-                  type="text"
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
-                  placeholder="ELIMINAR"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
-                />
-              </div>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
+                placeholder="Escriu &quot;ELIMINAR&quot; per continuar"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
 
-              {/* Delete button - only enabled if text matches and backup downloaded */}
+              {/* Delete button - only enabled if text matches */}
               <button
                 onClick={handleDeleteAccount}
-                disabled={isSyncing || deleteConfirmText !== 'ELIMINAR' || !downloadedBackup}
+                disabled={isSyncing || deleteConfirmText !== 'ELIMINAR'}
                 className="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm transition-colors"
               >
                 {isSyncing ? <RefreshCw size={15} className="animate-spin" /> : <AlertCircle size={15} />}
