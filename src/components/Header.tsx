@@ -268,7 +268,27 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     if (!file) return;
     const data = await readCSIFile(file);
     if (data) {
-      setPendingImport(data);
+      // Check if there's any existing local data
+      const existingBarbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
+      const existingDialectes = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
+      const hasExistingData = existingBarbarismes.length > 0 || existingDialectes.length > 0;
+      
+      // If no existing data, import directly without dialog
+      if (!hasExistingData) {
+        // Import directly
+        const newData = { barbarismes: data.barbarismes, dialectes: data.dialectes };
+        localStorage.setItem('doneBarbarismes', JSON.stringify(newData.barbarismes));
+        localStorage.setItem('doneDialectes', JSON.stringify(newData.dialectes));
+        
+        if (currentUser && isOnline) {
+          await cloudSync.saveProgress(currentUser, newData.barbarismes, newData.dialectes);
+        }
+        onProgressUpdate(newData.barbarismes, newData.dialectes);
+        dispatchProgressUpdate();
+      } else {
+        // Otherwise, show merge/replace dialog
+        setPendingImport(data);
+      }
     } else {
       alert('Error llegint el fitxer CSI');
     }
