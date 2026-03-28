@@ -542,9 +542,14 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                             ) : (
                               <RefreshCw size={14} className="text-gray-400" />
                             )}
-                            <span>
-                              {liveSyncHovered ? 'Sincronitzar ara' : 'Sincronització en viu'}
-                            </span>
+                            <div className="relative h-5 flex items-center">
+                              <span className="absolute transition-opacity duration-300" style={{ opacity: liveSyncHovered ? 0 : 1 }}>
+                                Sincronització en viu
+                              </span>
+                              <span className="absolute transition-opacity duration-300" style={{ opacity: liveSyncHovered ? 1 : 0 }}>
+                                Sincronitzar ara
+                              </span>
+                            </div>
                           </div>
                           {/* RIGHT zone: toggle only, no hover text change */}
                           <div
