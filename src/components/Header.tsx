@@ -43,6 +43,8 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
   // Delete account confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [downloadedBackup, setDownloadedBackup] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -298,20 +300,24 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
   const handleDeleteAccount = async () => {
     if (!currentUser) return;
+    if (deleteConfirmText !== 'ELIMINAR') return;
+    
     setIsSyncing(true);
     setSyncStatus('syncing');
     try {
       // Delete account from Supabase
       await cloudSync.deleteAccount(currentUser);
-
+      
       // Clear all local data
       localStorage.removeItem('fets_current_email');
       localStorage.removeItem('doneBarbarismes');
       localStorage.removeItem('doneDialectes');
-
+      
       setCurrentUser(null);
       setShowUserMenu(false);
       setShowDeleteConfirm(false);
+      setDeleteConfirmText('');
+      setDownloadedBackup(false);
       setSyncStatus('success');
       onProgressUpdate([], []);
       dispatchProgressUpdate();
@@ -321,6 +327,15 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     } finally {
       setIsSyncing(false);
       setTimeout(() => setSyncStatus('idle'), 2000);
+    }
+  };
+
+  const handleDownloadBackup = async () => {
+    try {
+      await handleExport();
+      setDownloadedBackup(true);
+    } catch (error) {
+      console.error('Error downloading backup:', error);
     }
   };
 
@@ -549,19 +564,60 @@ export function Header({ onProgressUpdate }: HeaderProps) {
           <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
             <h3 className="text-base font-semibold text-red-600 mb-2">Eliminar compte i dades</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Aquesta acció eliminarà permanentment el teu compte <strong>{currentUser}</strong> i totes les seves les dades. Això es una accio irreversible
+              Aquesta acció eliminarà permanentment el teu compte <strong>{currentUser}</strong> i totes les seves dades. Això és irreversible.
             </p>
-            <div className="space-y-2">
+            
+            <div className="space-y-3">
+              {/* Download backup button */}
+              <button
+                onClick={handleDownloadBackup}
+                disabled={downloadedBackup}
+                className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm transition-colors"
+              >
+                {downloadedBackup ? (
+                  <>
+                    <CheckCircle size={15} />
+                    Còpia descarregada
+                  </>
+                ) : (
+                  <>
+                    <Download size={15} />
+                    Baixar còpia de seguretat
+                  </>
+                )}
+              </button>
+
+              {/* Confirmation text field */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-2">
+                  Escriu &quot;ELIMINAR&quot; per continuar
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
+                  placeholder="ELIMINAR"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+
+              {/* Delete button - only enabled if text matches and backup downloaded */}
               <button
                 onClick={handleDeleteAccount}
-                disabled={isSyncing}
-                className="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm transition-colors"
+                disabled={isSyncing || deleteConfirmText !== 'ELIMINAR' || !downloadedBackup}
+                className="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm transition-colors"
               >
                 {isSyncing ? <RefreshCw size={15} className="animate-spin" /> : <AlertCircle size={15} />}
                 Eliminar permanentment
               </button>
+
+              {/* Cancel button */}
               <button
-                onClick={() => setShowDeleteConfirm(false)}
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteConfirmText('');
+                  setDownloadedBackup(false);
+                }}
                 disabled={isSyncing}
                 className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 disabled:opacity-50 text-sm transition-colors"
               >
