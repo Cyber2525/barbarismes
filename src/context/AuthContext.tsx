@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (dbError) return { error: dbError };
 
-      await emailjs.send('service_barbarismes', 'template_otp', {
+      await emailjs.send('service_b9dqlle', 'template_otp', {
         to_email: email,
         otp_code: code,
       });
