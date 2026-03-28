@@ -26,8 +26,10 @@ export function AuthButton() {
     if (!email.includes('@')) { setAuthError('Correu no valid'); return; }
     setSending(true);
     setAuthError('');
+    console.log('[v0] Sending OTP to:', email);
     const { error } = await requestOtp(email);
     setSending(false);
+    console.log('[v0] OTP result:', error ? error.message : 'OK');
     if (error) { setAuthError(error.message); return; }
     setAuthStep('otp');
   };
@@ -145,7 +147,9 @@ export function AuthButton() {
         </button>
         
         {showMenu && (
-          <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-red-100 z-50 p-4">
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => { setShowMenu(false); resetAuth(); }} />
+            <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-red-100 z-50 p-4">
             {authStep === 'otp' ? (
               <div>
                 <p className="text-sm font-medium text-gray-800 mb-1">Codi de verificacio</p>
@@ -212,8 +216,9 @@ export function AuthButton() {
                 </button>
               </>
             )}
-          </div>
-        )}
+            </div>
+          </>
+          )}
         <input ref={fileInputRef} type="file" accept=".csi" onChange={handleFileChange} className="hidden" />
         
         {showImportModal && importData && (

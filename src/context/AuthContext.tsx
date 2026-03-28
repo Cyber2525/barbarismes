@@ -1,11 +1,12 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import emailjs from '@emailjs/browser';
 import { supabase } from '../lib/supabase';
 import { syncFromCloud, syncToCloud, processOfflineQueue } from '../lib/sync';
 import { getDoneItems, saveDoneItems } from '../utils/doneItems';
 
-emailjs.init('uTLhCXvoBMZhyQvB5');
+declare const emailjs: {
+  send: (serviceId: string, templateId: string, params: Record<string, string>) => Promise<{ status: number; text: string }>;
+};
 
 // Fixed password per email — deterministic so user can always sign in again
 const getPasswordForEmail = (email: string) => `barb_${btoa(email)}_otp`;
@@ -79,16 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (dbError) return { error: dbError };
 
-      const result = await emailjs.send('service_b9dqlle', 'template_otp', {
+      await emailjs.send('service_b9dqlle', 'template_otp', {
         to_email: email,
         to_name: email.split('@')[0],
         otp_code: code,
-        reply_to: 'no-reply@barbarismes.app',
       });
-
-      if (result.status !== 200) {
-        return { error: new Error('Error enviant el correu') };
-      }
 
       return { error: null };
     } catch (e) {
