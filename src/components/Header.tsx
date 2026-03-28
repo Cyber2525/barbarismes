@@ -27,6 +27,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
+  const [loginError, setLoginError] = useState<string | null>(null);
   const loginRef = useRef<HTMLDivElement>(null);
 
   // User menu state (when logged in)
@@ -103,57 +104,68 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
   const handleLogin = async () => {
     if (!validateEmail(email)) return;
+    setLoginError(null);
+
+    // Block login if offline — server is the source of truth
+    if (!navigator.onLine) {
+      setLoginError('Sense connexió. Connecta\'t a internet per iniciar sessió.');
+      return;
+    }
+
     setIsSyncing(true);
     setSyncStatus('syncing');
     try {
-      const user = await cloudSync.getOrCreateUser(email);
-      if (user) {
-        // Get cloud progress
-        const cloudProgress = await cloudSync.loadProgress(email);
+      const user = await cloudSync.login(email);
 
-        // Get current local progress
-        const localBarbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
-        const localDialectes = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
-        const hasLocalProgress = localBarbarismes.length > 0 || localDialectes.length > 0;
-        const hasCloudProgress = cloudProgress && (cloudProgress.barbarismes.length > 0 || cloudProgress.dialectes.length > 0);
+      const cloudBarbarismes = user.progress_data;
+      const cloudDialectes = user.dialect_progress;
+      const cloudTs = user.item_timestamps;
 
-        // If both have data, show merge/replace dialog
-        if (hasLocalProgress && hasCloudProgress) {
-          setPendingLoginEmail(email);
-          setPendingCloudProgress(cloudProgress);
-          setShowLoginForm(false);
-          setEmail('');
-          setIsSyncing(false);
-          setSyncStatus('idle');
-          return;
-        }
+      // Get current local progress
+      const localBarbarismes: string[] = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
+      const localDialectes: string[] = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
+      const hasLocalProgress = localBarbarismes.length > 0 || localDialectes.length > 0;
+      const hasCloudProgress = cloudBarbarismes.length > 0 || cloudDialectes.length > 0;
 
-        // If only cloud has data, use cloud
-        if (hasCloudProgress && cloudProgress) {
-          localStorage.setItem('fets_current_email', email);
-          setCurrentUser(email);
-          localStorage.setItem('doneBarbarismes', JSON.stringify(cloudProgress.barbarismes));
-          localStorage.setItem('doneDialectes', JSON.stringify(cloudProgress.dialectes));
-          onProgressUpdate(cloudProgress.barbarismes, cloudProgress.dialectes);
-          dispatchProgressUpdate();
-        } else {
-          // If only local has data or neither has data, save local to cloud
-          localStorage.setItem('fets_current_email', email);
-          setCurrentUser(email);
-          if (hasLocalProgress) {
-            await cloudSync.saveProgress(email, localBarbarismes, localDialectes);
-          }
-          onProgressUpdate(localBarbarismes, localDialectes);
-          dispatchProgressUpdate();
-        }
-
+      // If both have data, show merge/replace dialog
+      if (hasLocalProgress && hasCloudProgress) {
+        setPendingLoginEmail(email);
+        setPendingCloudProgress({ barbarismes: cloudBarbarismes, dialectes: cloudDialectes });
         setShowLoginForm(false);
         setEmail('');
-        setSyncStatus('success');
-      } else {
-        setSyncStatus('error');
+        setIsSyncing(false);
+        setSyncStatus('idle');
+        return;
       }
-    } catch {
+
+      // Cloud data wins — apply it locally
+      const finalBarbarismes = hasCloudProgress ? cloudBarbarismes : localBarbarismes;
+      const finalDialectes = hasCloudProgress ? cloudDialectes : localDialectes;
+
+      localStorage.setItem('fets_current_email', email);
+      localStorage.setItem('doneBarbarismes', JSON.stringify(finalBarbarismes));
+      localStorage.setItem('doneDialectes', JSON.stringify(finalDialectes));
+      // Store cloud timestamps locally so LWW works from this point
+      localStorage.setItem('fets_item_timestamps', JSON.stringify(cloudTs));
+
+      // If new user with local data, push local to cloud right away
+      if (!hasCloudProgress && hasLocalProgress) {
+        await cloudSync.sync(email);
+      }
+
+      setCurrentUser(email);
+      onProgressUpdate(finalBarbarismes, finalDialectes);
+      dispatchProgressUpdate();
+      setShowLoginForm(false);
+      setEmail('');
+      setSyncStatus('success');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg === 'NO_CONNECTION') {
+        setLoginError('Sense connexió. Connecta\'t a internet per iniciar sessió.');
+      } else {
+        setLoginError('Error del servidor. Torna-ho a intentar.');
+      }
       setSyncStatus('error');
     } finally {
       setIsSyncing(false);
@@ -164,34 +176,29 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   // Handle login merge/replace confirmation
   const handleLoginConfirm = async (mode: 'merge' | 'replace') => {
     if (!pendingLoginEmail || !pendingCloudProgress) return;
-
     setIsSyncing(true);
     setSyncStatus('syncing');
-
     try {
-      const localBarbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
-      const localDialectes = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
+      const localBarbarismes: string[] = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
+      const localDialectes: string[] = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
 
       let finalBarbarismes: string[];
       let finalDialectes: string[];
 
       if (mode === 'merge') {
-        // Union of both
         finalBarbarismes = Array.from(new Set([...localBarbarismes, ...pendingCloudProgress.barbarismes]));
         finalDialectes = Array.from(new Set([...localDialectes, ...pendingCloudProgress.dialectes]));
       } else {
-        // Replace with cloud data
         finalBarbarismes = pendingCloudProgress.barbarismes;
         finalDialectes = pendingCloudProgress.dialectes;
       }
 
-      // Save to localStorage
       localStorage.setItem('fets_current_email', pendingLoginEmail);
       localStorage.setItem('doneBarbarismes', JSON.stringify(finalBarbarismes));
       localStorage.setItem('doneDialectes', JSON.stringify(finalDialectes));
 
-      // Save merged/final to cloud
-      await cloudSync.saveProgress(pendingLoginEmail, finalBarbarismes, finalDialectes);
+      // Push the final state to cloud with LWW
+      await cloudSync.sync(pendingLoginEmail);
 
       setCurrentUser(pendingLoginEmail);
       onProgressUpdate(finalBarbarismes, finalDialectes);
@@ -230,17 +237,9 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     setIsSyncing(true);
     setSyncStatus('syncing');
     try {
-      const localBarbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
-      const localDialectes = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
-      await cloudSync.saveProgress(currentUser, localBarbarismes, localDialectes);
-      await cloudSync.processQueue(currentUser);
-      const progress = await cloudSync.loadProgress(currentUser);
-      if (progress) {
-        localStorage.setItem('doneBarbarismes', JSON.stringify(progress.barbarismes));
-        localStorage.setItem('doneDialectes', JSON.stringify(progress.dialectes));
-        onProgressUpdate(progress.barbarismes, progress.dialectes);
-        dispatchProgressUpdate();
-      }
+      const result = await cloudSync.sync(currentUser);
+      onProgressUpdate(result.barbarismes, result.dialectes);
+      dispatchProgressUpdate();
       setSyncStatus('success');
       setPendingChanges(0);
     } catch {
@@ -309,7 +308,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     localStorage.setItem('doneDialectes', JSON.stringify(newData.dialectes));
 
     if (currentUser && isOnline) {
-      await cloudSync.saveProgress(currentUser, newData.barbarismes, newData.dialectes);
+      await cloudSync.sync(currentUser);
     }
     onProgressUpdate(newData.barbarismes, newData.dialectes);
     dispatchProgressUpdate();
@@ -405,14 +404,16 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                             value={email}
                             onChange={(e) => {
                               setEmail(e.target.value.toLowerCase());
+                              setLoginError(null);
                               if (emailError) validateEmail(e.target.value.toLowerCase());
                             }}
                             onKeyDown={(e) => { if (e.key === 'Enter' && email && !isSyncing) handleLogin(); }}
                             placeholder="12345678.santignasi@fje.edu"
-                            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${emailError ? 'border-red-500' : 'border-gray-300'}`}
+                            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${emailError || loginError ? 'border-red-500' : 'border-gray-300'}`}
                             autoFocus
                           />
                           {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
+                          {loginError && <p className="text-xs text-red-500 mt-1">{loginError}</p>}
                         </div>
                         <button
                           onClick={handleLogin}
