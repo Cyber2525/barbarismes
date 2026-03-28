@@ -203,11 +203,7 @@ export const cloudSync = {
       .eq('email', email)
       .single();
 
-    if (error) {
-      // PGRST116 = row not found — account has been deleted from the database
-      if (error.code === 'PGRST116') throw new Error('ACCOUNT_NOT_FOUND');
-      throw new Error('SERVER_ERROR');
-    }
+    if (error) throw new Error('SERVER_ERROR');
 
     const cloudBarbarismes: string[] = data.progress_data || [];
     const cloudDialectes: string[] = data.dialect_progress || [];
