@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload } from 'lucide-react';
 import { cloudSync } from '../lib/cloudSync';
 import { downloadCSI, readCSIFile, mergeCSIData, CSIData } from '../lib/csiExport';
@@ -89,16 +89,17 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
   // Auto-sync when coming online
   useEffect(() => {
-    if (isOnline && currentUser && pendingChanges > 0) {
+    if (isOnline && currentUser) {
       handleSync();
     }
   }, [isOnline]);
 
   // Auto-sync on page init if user is logged in and online
   useEffect(() => {
-    if (currentUser && isOnline && syncStatus === 'idle') {
+    if (currentUser && isOnline) {
       handleSync();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const validateEmail = (value: string): boolean => {
@@ -240,7 +241,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     dispatchProgressUpdate();
   };
 
-  const handleSync = async () => {
+  const handleSync = useCallback(async () => {
     if (!currentUser || !isOnline) return;
     setIsSyncing(true);
     setSyncStatus('syncing');
@@ -256,7 +257,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       setIsSyncing(false);
       setTimeout(() => setSyncStatus('idle'), 2000);
     }
-  };
+  }, [currentUser, isOnline, onProgressUpdate]);
 
   const handleExport = () => {
     const barbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
@@ -443,9 +444,26 @@ export function Header({ onProgressUpdate }: HeaderProps) {
               <>
                 {/* Sync indicator only */}
                 <div className="flex items-center gap-1 text-xs text-gray-500">
-                  {syncStatus === 'syncing' && <RefreshCw size={13} className="animate-spin text-blue-500" />}
-                  {syncStatus === 'success' && <CheckCircle size={13} className="text-green-500" />}
-                  {syncStatus === 'error' && <AlertCircle size={13} className="text-red-500" />}
+                  <span
+                    className="transition-opacity duration-300"
+                    style={{ opacity: syncStatus === 'syncing' ? 1 : 0, position: 'absolute', pointerEvents: 'none' }}
+                  >
+                    <RefreshCw size={13} className="animate-spin text-blue-500" />
+                  </span>
+                  <span
+                    className="transition-opacity duration-300"
+                    style={{ opacity: syncStatus === 'success' ? 1 : 0, position: 'absolute', pointerEvents: 'none' }}
+                  >
+                    <CheckCircle size={13} className="text-green-500" />
+                  </span>
+                  <span
+                    className="transition-opacity duration-300"
+                    style={{ opacity: syncStatus === 'error' ? 1 : 0, position: 'absolute', pointerEvents: 'none' }}
+                  >
+                    <AlertCircle size={13} className="text-red-500" />
+                  </span>
+                  {/* Invisible spacer so the area doesn't collapse */}
+                  <span className="invisible"><RefreshCw size={13} /></span>
                   {pendingChanges > 0 && (
                     <span className="bg-yellow-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">{pendingChanges}</span>
                   )}
