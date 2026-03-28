@@ -293,35 +293,29 @@ export const cloudSync = {
   },
 };
 
-// Subscribe to realtime changes for this user — notifies when another device syncs
-export function subscribeToUserChanges(
-  email: string,
-  onChangeDetected: () => void,
-): { unsubscribe: () => void } {
-  if (!isSupabaseConfigured() || !supabase) {
-    return { unsubscribe: () => {} };
-  }
+// Subscribe to realtime changes for this user's row
+// Returns an unsubscribe function
+export function subscribeRealtime(email: string, onRemoteChange: () => void): () => void {
+  if (!isSupabaseConfigured() || !supabase) return () => {};
 
   const channel = supabase
-    .channel(`user-${email}`)
+    .channel(`progress:${email}`)
     .on(
       'postgres_changes',
       {
-        event: '*',
+        event: 'UPDATE',
         schema: 'public',
         table: 'users_progress',
         filter: `email=eq.${email}`,
       },
       () => {
-        onChangeDetected();
+        onRemoteChange();
       }
     )
     .subscribe();
 
-  return {
-    unsubscribe: () => {
-      channel.unsubscribe();
-    },
+  return () => {
+    supabase!.removeChannel(channel);
   };
 }
 
@@ -330,7 +324,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     const email = localStorage.getItem('fets_current_email');
     if (email) {
-      cloudSync.sync(email).catch(() => {});
+      cloudSync.pushChange(email).catch(() => {});
     }
   });
 }
