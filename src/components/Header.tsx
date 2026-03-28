@@ -93,43 +93,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     return () => document.removeEventListener('mousedown', handler);
   }, [showUserMenu]);
 
-  // Auto-sync when coming online
-  useEffect(() => {
-    if (isOnline && currentUser) {
-      handleSync();
-    }
-  }, [isOnline]);
-
-  // Auto-sync on page init if user is logged in and online
-  useEffect(() => {
-    if (currentUser && isOnline) {
-      handleSync();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Live sync loop — schedules next sync 2s after the previous one finishes
-  useEffect(() => {
-    if (!liveSync || !currentUser || !isOnline) {
-      if (liveSyncTimerRef.current) clearTimeout(liveSyncTimerRef.current);
-      return;
-    }
-
-    const schedule = () => {
-      liveSyncTimerRef.current = setTimeout(async () => {
-        if (!isSyncingRef.current) {
-          await handleSync();
-        }
-        schedule();
-      }, 2000);
-    };
-
-    schedule();
-    return () => {
-      if (liveSyncTimerRef.current) clearTimeout(liveSyncTimerRef.current);
-    };
-  }, [liveSync, currentUser, isOnline, handleSync]);
-
   const validateEmail = (value: string): boolean => {
     if (!cloudSync.validateEmail(value)) {
       setEmailError('Format: XXXXXXXX.santignasi@fje.edu (max 8 chars)');
@@ -297,6 +260,41 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       return next;
     });
   }, []);
+
+  // Auto-sync when coming online
+  useEffect(() => {
+    if (isOnline && currentUser) {
+      handleSync();
+    }
+  }, [isOnline]);
+
+  // Auto-sync on page init if user is logged in and online
+  useEffect(() => {
+    if (currentUser && isOnline) {
+      handleSync();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Live sync loop — schedules next sync 2s after the previous one finishes
+  useEffect(() => {
+    if (!liveSync || !currentUser || !isOnline) {
+      if (liveSyncTimerRef.current) clearTimeout(liveSyncTimerRef.current);
+      return;
+    }
+    const schedule = () => {
+      liveSyncTimerRef.current = setTimeout(async () => {
+        if (!isSyncingRef.current) {
+          await handleSync();
+        }
+        schedule();
+      }, 2000);
+    };
+    schedule();
+    return () => {
+      if (liveSyncTimerRef.current) clearTimeout(liveSyncTimerRef.current);
+    };
+  }, [liveSync, currentUser, isOnline, handleSync]);
 
   const handleExport = () => {
     const barbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
