@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { syncFromCloud, syncToCloud, processOfflineQueue } from '../lib/sync';
 import { getDoneItems, saveDoneItems } from '../utils/doneItems';
 
-emailjs.init('cJREF_dBVmklXDxVe');
+emailjs.init('uTLhCXvoBMZhyQvB5');
 
 interface AuthContextType {
   user: User | null;
