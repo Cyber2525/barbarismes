@@ -140,8 +140,8 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
 
       if (data) {
         // Merge cloud data with local data
-        const cloudBarbarismes = new Set(data.done_barbarismes || []);
-        const cloudDialectes = new Set(data.done_dialectes || []);
+        const cloudBarbarismes = new Set<string>((data.done_barbarismes as string[]) || []);
+        const cloudDialectes = new Set<string>((data.done_dialectes as string[]) || []);
 
         // Apply pending changes on top of cloud data
         pendingChanges.forEach(change => {
