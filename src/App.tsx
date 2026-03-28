@@ -12,12 +12,18 @@ import { StudySheet } from './components/StudySheet';
 import { DialectStudySheet } from './components/DialectStudySheet';
 import { DialectQuiz } from './components/DialectQuiz';
 import { OfflineButton } from './components/OfflineButton';
+import { CloudSyncPanel } from './components/CloudSyncPanel';
 import { BookOpen, Globe, Languages, Pencil } from 'lucide-react';
 
 // Default quiz size
 const DEFAULT_QUIZ_SIZE = 20;
 
 export function App() {
+  // Handle progress updates from cloud sync
+  const handleProgressUpdate = (barbarismes: string[], dialectes: string[]) => {
+    // Force reload to apply new progress
+    window.location.reload();
+  };
   const [appSection, setAppSection] = useState<'barbarismes' | 'dialectes'>(() => {
     const savedSection = localStorage.getItem('appSection');
     return (savedSection as 'barbarismes' | 'dialectes') || 'dialectes';
@@ -415,6 +421,9 @@ export function App() {
           <p className="mt-4 text-sm text-red-400 text-left md:text-center">Català CSI - Por Víctor De Nadal - Colegio San Ignacio (CSI) Barcelona</p>
         </footer>
       </div>
+
+      {/* Cloud Sync Panel */}
+      <CloudSyncPanel onProgressUpdate={handleProgressUpdate} />
     </div>
   );
 }
