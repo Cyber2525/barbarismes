@@ -1,27 +1,27 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Try multiple env var patterns for compatibility
-const getEnvVar = (key: string): string | undefined => {
-  // Check window for runtime injection
-  if (typeof window !== 'undefined' && (window as unknown as Record<string, string>)[key]) {
-    return (window as unknown as Record<string, string>)[key];
-  }
-  // Check import.meta.env for Vite
-  const viteKey = `VITE_${key}`;
-  const nextKey = `NEXT_PUBLIC_${key}`;
-  
-  return import.meta.env[viteKey] || import.meta.env[nextKey] || import.meta.env[key];
-};
+// Try all possible env var patterns
+const supabaseUrl = 
+  import.meta.env.VITE_SUPABASE_URL ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
+  import.meta.env.SUPABASE_URL ||
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
+  '';
 
-const supabaseUrl = getEnvVar('SUPABASE_URL');
-const supabaseAnonKey = getEnvVar('SUPABASE_ANON_KEY');
+const supabaseAnonKey = 
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  import.meta.env.SUPABASE_ANON_KEY ||
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+  '';
 
 let supabaseInstance: SupabaseClient | null = null;
 
 if (supabaseUrl && supabaseAnonKey) {
   supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
+  console.log('[v0] Supabase configured successfully');
 } else {
-  console.warn('[CloudSync] Supabase credentials not found. Cloud sync disabled.');
+  console.warn('[v0] Supabase credentials not found. URL:', !!supabaseUrl, 'Key:', !!supabaseAnonKey);
 }
 
 export const supabase = supabaseInstance;

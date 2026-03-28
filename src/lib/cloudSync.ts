@@ -70,15 +70,33 @@ export const cloudSync = {
 
   // Get or create user
   async getOrCreateUser(email: string): Promise<UserProgress | null> {
-    if (!isSupabaseConfigured() || !supabase) return null;
+    console.log('[v0] getOrCreateUser called with:', email);
+    console.log('[v0] Supabase configured:', isSupabaseConfigured());
+    
+    // If Supabase not configured, work in offline mode
+    if (!isSupabaseConfigured() || !supabase) {
+      console.log('[v0] Working in offline mode (no Supabase)');
+      // Return a local user object for offline mode
+      return {
+        email,
+        display_name: email.split('.')[0].toUpperCase(),
+        progress_data: JSON.parse(localStorage.getItem('doneBarbarismes') || '[]'),
+        dialect_progress: JSON.parse(localStorage.getItem('doneDialectes') || '[]'),
+        last_sync_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    }
     
     try {
+      console.log('[v0] Checking if user exists in Supabase...');
       // Check if user exists
       const { data: existing, error: fetchError } = await supabase
         .from('users_progress')
         .select('*')
         .eq('email', email)
         .single();
+
+      console.log('[v0] Fetch result:', existing, 'Error:', fetchError);
 
       if (existing && !fetchError) {
         return {
@@ -92,6 +110,7 @@ export const cloudSync = {
       }
 
       // Create new user
+      console.log('[v0] User not found, creating new user...');
       const displayName = email.split('.')[0].toUpperCase();
       const { data: newUser, error: insertError } = await supabase
         .from('users_progress')
@@ -107,6 +126,8 @@ export const cloudSync = {
         .select()
         .single();
 
+      console.log('[v0] Insert result:', newUser, 'Error:', insertError);
+
       if (insertError) throw insertError;
 
       return {
@@ -118,14 +139,28 @@ export const cloudSync = {
         updated_at: newUser.updated_at,
       };
     } catch (error) {
-      console.error('[CloudSync] Error getting/creating user:', error);
-      return null;
+      console.error('[v0] Error getting/creating user:', error);
+      // Fallback to offline mode
+      return {
+        email,
+        display_name: email.split('.')[0].toUpperCase(),
+        progress_data: JSON.parse(localStorage.getItem('doneBarbarismes') || '[]'),
+        dialect_progress: JSON.parse(localStorage.getItem('doneDialectes') || '[]'),
+        last_sync_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
     }
   },
 
   // Load progress from cloud
   async loadProgress(email: string): Promise<{ barbarismes: string[]; dialectes: string[] } | null> {
-    if (!isSupabaseConfigured() || !supabase) return null;
+    // If no Supabase, return local progress
+    if (!isSupabaseConfigured() || !supabase) {
+      return {
+        barbarismes: JSON.parse(localStorage.getItem('doneBarbarismes') || '[]'),
+        dialectes: JSON.parse(localStorage.getItem('doneDialectes') || '[]'),
+      };
+    }
 
     try {
       const { data, error } = await supabase
@@ -141,8 +176,12 @@ export const cloudSync = {
         dialectes: data.dialect_progress || [],
       };
     } catch (error) {
-      console.error('[CloudSync] Error loading progress:', error);
-      return null;
+      console.error('[v0] Error loading progress:', error);
+      // Fallback to local
+      return {
+        barbarismes: JSON.parse(localStorage.getItem('doneBarbarismes') || '[]'),
+        dialectes: JSON.parse(localStorage.getItem('doneDialectes') || '[]'),
+      };
     }
   },
 
