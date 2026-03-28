@@ -1,27 +1,19 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Try all possible env var patterns
-const supabaseUrl = 
-  import.meta.env.VITE_SUPABASE_URL ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
-  import.meta.env.SUPABASE_URL ||
-  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
-  '';
+// Get Supabase credentials from env (Vite injects these at build time)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-const supabaseAnonKey = 
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  import.meta.env.SUPABASE_ANON_KEY ||
-  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
-  '';
+console.log('[v0] Supabase URL available:', !!supabaseUrl);
+console.log('[v0] Supabase Key available:', !!supabaseAnonKey);
 
 let supabaseInstance: SupabaseClient | null = null;
 
 if (supabaseUrl && supabaseAnonKey) {
   supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
-  console.log('[v0] Supabase configured successfully');
+  console.log('[v0] Supabase client created successfully');
 } else {
-  console.warn('[v0] Supabase credentials not found. URL:', !!supabaseUrl, 'Key:', !!supabaseAnonKey);
+  console.warn('[v0] Supabase not configured - cloud sync disabled');
 }
 
 export const supabase = supabaseInstance;

@@ -187,23 +187,38 @@ export const cloudSync = {
 
   // Save progress to cloud
   async saveProgress(email: string, barbarismes: string[], dialectes: string[]): Promise<boolean> {
-    if (!isSupabaseConfigured() || !supabase) return false;
+    console.log('[v0] saveProgress called:', email, 'barbarismes:', barbarismes.length, 'dialectes:', dialectes.length);
+    
+    if (!isSupabaseConfigured() || !supabase) {
+      console.log('[v0] Supabase not configured, skipping save');
+      return false;
+    }
 
     try {
+      // Use upsert to handle both new and existing users
       const { error } = await supabase
         .from('users_progress')
-        .update({
+        .upsert({
+          email,
+          display_name: email.split('.')[0].toUpperCase(),
           progress_data: barbarismes,
           dialect_progress: dialectes,
+          settings: {},
           last_sync_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        })
-        .eq('email', email);
+        }, {
+          onConflict: 'email'
+        });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[v0] Error saving progress:', error);
+        throw error;
+      }
+      
+      console.log('[v0] Progress saved successfully');
       return true;
     } catch (error) {
-      console.error('[CloudSync] Error saving progress:', error);
+      console.error('[v0] Error saving progress:', error);
       return false;
     }
   },

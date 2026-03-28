@@ -11,12 +11,18 @@ const getCurrentEmail = (): string | null => {
 // Sync to cloud in background
 const syncToCloud = async () => {
   const email = getCurrentEmail();
-  if (!email) return;
+  console.log('[v0] syncToCloud called, email:', email);
+  if (!email) {
+    console.log('[v0] No email found, skipping sync');
+    return;
+  }
   
   const barbarismes = JSON.parse(localStorage.getItem(DONE_ITEMS_KEY) || '[]');
   const dialectes = JSON.parse(localStorage.getItem(DONE_DIALECTES_KEY) || '[]');
   
-  await cloudSync.saveProgress(email, barbarismes, dialectes);
+  console.log('[v0] Syncing to cloud:', barbarismes.length, 'barbarismes,', dialectes.length, 'dialectes');
+  const result = await cloudSync.saveProgress(email, barbarismes, dialectes);
+  console.log('[v0] Sync result:', result);
 };
 
 // Debounced sync to avoid too many API calls
