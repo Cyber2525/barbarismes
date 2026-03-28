@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { cloudSync } from '../lib/cloudSync';
 
@@ -16,34 +16,18 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [showLoginForm, setShowLoginForm] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleOnline = () => setIsOnline(true);
   const handleOffline = () => setIsOnline(false);
 
-  useEffect(() => {
+  useState(() => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowLoginForm(false);
-      }
-    };
-
-    if (showLoginForm) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showLoginForm]);
+  });
 
   const validateEmail = (value: string): boolean => {
     if (!cloudSync.validateEmail(value)) {
@@ -80,8 +64,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       } else {
         setSyncStatus('error');
       }
-    } catch (error) {
-      console.log('[v0] Login error:', error);
+    } catch {
       setSyncStatus('error');
     } finally {
       setIsSyncing(false);
@@ -105,7 +88,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-lg md:text-xl font-bold text-red-800">Català CSI</h1>
           
-          <div className="flex items-center gap-3 relative">
+          <div className="flex items-center gap-3">
             {/* Online Status */}
             {currentUser && (
               <div className="flex items-center gap-1 text-xs text-gray-600">
@@ -136,7 +119,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
             {/* Login Button Area */}
             {!currentUser ? (
-              <div ref={dropdownRef} className="relative">
+              <>
                 <button
                   onClick={() => setShowLoginForm(!showLoginForm)}
                   className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -147,7 +130,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
                 {/* Login Form Dropdown */}
                 {showLoginForm && (
-                  <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
+                  <div className="absolute top-full right-4 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4">
                     <div className="space-y-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -160,16 +143,10 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                             setEmail(e.target.value.toLowerCase());
                             if (emailError) validateEmail(e.target.value.toLowerCase());
                           }}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter' && email && !isSyncing) {
-                              handleLogin();
-                            }
-                          }}
                           placeholder="12345678.santignasi@fje.edu"
                           className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${
                             emailError ? 'border-red-500' : 'border-gray-300'
                           }`}
-                          autoFocus
                         />
                         {emailError && (
                           <p className="text-xs text-red-500 mt-1">{emailError}</p>
@@ -178,7 +155,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                       <button
                         onClick={handleLogin}
                         disabled={isSyncing || !email}
-                        className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+                        className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       >
                         {isSyncing ? (
                           <RefreshCw size={16} className="animate-spin" />
@@ -190,7 +167,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                     </div>
                   </div>
                 )}
-              </div>
+              </>
             ) : (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600 hidden md:inline">
