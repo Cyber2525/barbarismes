@@ -12,12 +12,17 @@ import { StudySheet } from './components/StudySheet';
 import { DialectStudySheet } from './components/DialectStudySheet';
 import { DialectQuiz } from './components/DialectQuiz';
 import { OfflineButton } from './components/OfflineButton';
-import { BookOpen, Globe, Languages, Pencil } from 'lucide-react';
+import { LoginForm } from './components/LoginForm';
+import { SyncStatus } from './components/SyncStatus';
+import { useAuth } from './contexts/AuthContext';
+import { BookOpen, Globe, Languages, Pencil, LogIn } from 'lucide-react';
 
 // Default quiz size
 const DEFAULT_QUIZ_SIZE = 20;
 
 export function App() {
+  const { user, isLoading: authLoading } = useAuth();
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [appSection, setAppSection] = useState<'barbarismes' | 'dialectes'>(() => {
     const savedSection = localStorage.getItem('appSection');
     return (savedSection as 'barbarismes' | 'dialectes') || 'dialectes';
@@ -282,10 +287,24 @@ export function App() {
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-red-100 py-6 md:py-8 px-4" style={{ fontFamily: 'Poppins, sans-serif' }}>
       <div className="container mx-auto">
         <header className="flex flex-col items-center justify-between mb-6 md:mb-8">
-          <div className="flex items-center mb-4 w-full justify-center">
+          <div className="flex items-center mb-4 w-full justify-between">
+            <div className="w-24" /> {/* Spacer */}
             <div className="text-center">
-              <h1 className="text-2xl md:text-3xl font-bold text-red-800">Estudiar Català CSI</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-red-800">Estudiar Catala CSI</h1>
               <p className="text-sm md:text-base text-red-600">SACA UN 10 EN CATALAN</p>
+            </div>
+            <div className="w-24 flex justify-end">
+              {user ? (
+                <SyncStatus />
+              ) : (
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white text-red-600 border border-red-200 hover:bg-red-50 transition-colors"
+                >
+                  <LogIn size={18} />
+                  <span className="hidden sm:inline text-sm">Sync</span>
+                </button>
+              )}
             </div>
           </div>
           
@@ -412,9 +431,24 @@ export function App() {
 
         <footer className="text-center mt-8 md:mt-12 flex flex-col items-center">
           <OfflineButton />
-          <p className="mt-4 text-sm text-red-400 text-left md:text-center">Català CSI - Por Víctor De Nadal - Colegio San Ignacio (CSI) Barcelona</p>
+          <p className="mt-4 text-sm text-red-400 text-left md:text-center">Catala CSI - Por Victor De Nadal - Colegio San Ignacio (CSI) Barcelona</p>
         </footer>
       </div>
+
+      {/* Login Modal */}
+      {showLoginModal && !user && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="relative w-full max-w-md">
+            <button
+              onClick={() => setShowLoginModal(false)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-200 transition-colors"
+            >
+              Tancar
+            </button>
+            <LoginForm />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

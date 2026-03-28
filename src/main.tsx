@@ -1,6 +1,8 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
+import { AuthProvider } from './contexts/AuthContext.tsx'
+import { SyncProvider } from './contexts/SyncContext.tsx'
 import './index.css'
 
 // Cache name for direct verification
@@ -277,6 +279,10 @@ if ('serviceWorker' in navigator) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <AuthProvider>
+      <SyncProvider>
+        <App />
+      </SyncProvider>
+    </AuthProvider>
   </StrictMode>,
 )

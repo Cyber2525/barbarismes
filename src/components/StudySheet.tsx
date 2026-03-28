@@ -3,7 +3,7 @@ import { quizData } from '../data/quizData';
 import { AlignJustify, ArrowDownAZ, ArrowDownZA, ArrowUpDown, Book, BookOpen, CheckSquare, ChevronDown, ChevronUp, FileWarning, MessageSquareQuote, RefreshCw, Search, SlidersHorizontal, Square, Tags, X } from 'lucide-react';
 import { QuizMode } from '../types/quiz';
 import { scrollToTop } from '../utils/scrollHelper';
-import { getDoneItems, toggleDone } from '../utils/doneItems';
+import { useSync } from '../contexts/SyncContext';
 
 // Helper function to remove accents from a character
 function removeAccents(str: string): string {
@@ -19,6 +19,7 @@ type SortOption = 'alphabetical-asc' | 'type' | 'septet-funest' | 'complexity' |
 type DoneFilter = 'all' | 'done' | 'not-done';
 
 export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
+  const { doneBarbarismes, toggleBarbarisme } = useSync();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>(() => {
     const savedSort = localStorage.getItem('studySheetSort');
@@ -29,23 +30,19 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
   const [currentMode, setCurrentMode] = useState<QuizMode>(initialMode);
   const [randomSeed, setRandomSeed] = useState<number>(Math.random());
-  const [doneItems, setDoneItems] = useState<Set<string>>(() => getDoneItems());
+
+  // Use doneBarbarismes from sync context
+  const doneItems = doneBarbarismes;
 
   // Save sort preference when it changes
   useEffect(() => {
     localStorage.setItem('studySheetSort', sortBy);
   }, [sortBy]);
 
-  // Refresh done items from localStorage (in case they changed from quiz)
-  useEffect(() => {
-    setDoneItems(getDoneItems());
-  }, []);
-
   const handleToggleDone = useCallback((barbarism: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    toggleDone(barbarism);
-    setDoneItems(getDoneItems());
-  }, []);
+    toggleBarbarisme(barbarism);
+  }, [toggleBarbarisme]);
 
   // Filter data based on mode and search term
   let filteredData = [...quizData];

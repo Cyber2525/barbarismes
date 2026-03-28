@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { QuizItem } from '../types/quiz';
 import { Check, CheckSquare, RefreshCw, Squircle, X } from 'lucide-react';
-import { getDoneItems, markAsDone, markManyAsDone } from '../utils/doneItems';
+import { useSync } from '../contexts/SyncContext';
 
 interface QuizResultsProps {
   items: QuizItem[];
@@ -11,6 +11,7 @@ interface QuizResultsProps {
 }
 
 export function QuizResults({ items, answers, score, onRestart }: QuizResultsProps) {
+  const { doneBarbarismes, markBarbarismeDone } = useSync();
   const percentage = Math.round((score / items.length) * 100);
   const [isPreparingFailedItems, setIsPreparingFailedItems] = useState(false);
 
@@ -43,28 +44,21 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
 
   // Auto-mark initially correct items on first mount
   useEffect(() => {
-    const initiallyCorrect: string[] = [];
-    const doneSet = getDoneItems();
-
     displayItems.forEach((item, index) => {
       const state = getAnswerState(index, item);
       if (state === 2 && !item.wasOriginallyCorrect) {
         // Initially correct in this quiz run — auto-mark as done
-        if (!doneSet.has(item.barbarism)) {
-          initiallyCorrect.push(item.barbarism);
+        if (!doneBarbarismes.has(item.barbarism)) {
+          markBarbarismeDone(item.barbarism);
         }
       }
       // wasOriginallyCorrect items are from prior sessions, already handled
     });
-
-    if (initiallyCorrect.length > 0) {
-      markManyAsDone(initiallyCorrect);
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRegisterCorrected = () => {
-    markManyAsDone(correctedPendingItems.map(i => i.barbarism));
+    correctedPendingItems.forEach(item => markBarbarismeDone(item.barbarism));
     setShowCorrectedDialog(false);
     setCorrectedPendingItems([]);
   };
@@ -143,13 +137,12 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
   useEffect(() => {
     if (failedItemsCount === 0) {
       const corrected: QuizItem[] = [];
-      const doneSet = getDoneItems();
 
       displayItems.forEach((item, index) => {
         const state = getAnswerState(index, item);
         if (state === 1 && !item.wasOriginallyCorrect) {
           // Corrected after failing — show dialog only if not already done
-          if (!doneSet.has(item.barbarism)) {
+          if (!doneBarbarismes.has(item.barbarism)) {
             corrected.push(item);
           }
         }
