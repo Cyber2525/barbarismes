@@ -19,10 +19,11 @@ import { BookOpen, Globe, Languages, Pencil } from 'lucide-react';
 const DEFAULT_QUIZ_SIZE = 20;
 
 export function App() {
-  // Handle progress updates from cloud sync
-  const handleProgressUpdate = (barbarismes: string[], dialectes: string[]) => {
-    // Force reload to apply new progress
-    window.location.reload();
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Called by Header when cloud progress is loaded — bumps key to re-read localStorage
+  const handleProgressUpdate = (_barbarismes: string[], _dialectes: string[]) => {
+    setRefreshKey(k => k + 1);
   };
   const [appSection, setAppSection] = useState<'barbarismes' | 'dialectes'>(() => {
     const savedSection = localStorage.getItem('appSection');
@@ -85,6 +86,13 @@ export function App() {
       startNewQuiz();
     }, 800);
   }, []);
+
+  // Re-start quiz when cloud progress is loaded after login
+  useEffect(() => {
+    if (refreshKey > 0) {
+      startNewQuiz();
+    }
+  }, [refreshKey]);
   
   // Listen for practice failed items event
   useEffect(() => {

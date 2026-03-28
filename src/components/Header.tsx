@@ -195,9 +195,9 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-40 bg-white/70 backdrop-blur-md border-b border-gray-200/60 shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-40 bg-white/70 backdrop-blur-md border-b border-gray-200/60">
         <div className="px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg md:text-xl font-bold text-red-700">Català CSI</h1>
+          <h1 className="text-lg md:text-xl font-bold text-red-600">Català CSI</h1>
 
           <div className="flex items-center gap-3">
             {/* --- NOT LOGGED IN: Login button --- */}
@@ -248,9 +248,8 @@ export function Header({ onProgressUpdate }: HeaderProps) {
             {/* --- LOGGED IN: status + user button --- */}
             {currentUser && (
               <>
-                {/* Online / sync indicator */}
+                {/* Sync indicator only */}
                 <div className="flex items-center gap-1 text-xs text-gray-500">
-                  {isOnline ? <Wifi size={14} className="text-green-500" /> : <WifiOff size={14} className="text-yellow-500" />}
                   {syncStatus === 'syncing' && <RefreshCw size={13} className="animate-spin text-blue-500" />}
                   {syncStatus === 'success' && <CheckCircle size={13} className="text-green-500" />}
                   {syncStatus === 'error' && <AlertCircle size={13} className="text-red-500" />}
@@ -263,58 +262,44 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                 <div ref={userMenuRef} className="relative">
                   <button
                     onClick={() => setShowUserMenu(v => !v)}
-                    className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm text-gray-700"
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                   >
-                    {isOnline ? <Cloud size={15} className="text-green-600" /> : <CloudOff size={15} className="text-yellow-600" />}
+                    {isOnline ? <Cloud size={15} className="text-white" /> : <CloudOff size={15} className="text-white" />}
                     <span className="font-medium">{displayName}</span>
                   </button>
 
                   {showUserMenu && (
-                    <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50">
-                      {/* Info row */}
-                      <div className="px-4 py-3 bg-red-50 border-b border-red-100">
-                        <p className="text-xs text-gray-500 truncate">{currentUser}</p>
-                        <p className="text-xs mt-0.5 flex items-center gap-1">
-                          {isOnline
-                            ? <span className="text-green-600 flex items-center gap-1"><Wifi size={11} /> Online</span>
-                            : <span className="text-yellow-600 flex items-center gap-1"><WifiOff size={11} /> Offline</span>
-                          }
-                          {syncStatus === 'syncing' && <span className="text-blue-500 flex items-center gap-1"><RefreshCw size={11} className="animate-spin" /> Sincronitzant...</span>}
-                          {syncStatus === 'success' && <span className="text-green-500 flex items-center gap-1"><CheckCircle size={11} /> Sincronitzat</span>}
-                          {syncStatus === 'error' && <span className="text-red-500 flex items-center gap-1"><AlertCircle size={11} /> Error</span>}
-                        </p>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="py-1">
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
+                      <p className="text-sm font-semibold text-gray-800 mb-3">{currentUser}</p>
+                      <div className="space-y-1">
                         <button
                           onClick={() => { handleSync(); setShowUserMenu(false); }}
                           disabled={isSyncing || !isOnline}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors"
                         >
-                          <RefreshCw size={15} className={isSyncing ? 'animate-spin text-blue-500' : 'text-gray-400'} />
+                          <RefreshCw size={14} className={isSyncing ? 'animate-spin text-blue-500' : 'text-gray-400'} />
                           Sincronitzar ara
                         </button>
                         <button
                           onClick={handleExport}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                         >
-                          <Download size={15} className="text-gray-400" />
+                          <Download size={14} className="text-gray-400" />
                           Exportar (.csi)
                         </button>
                         <button
                           onClick={handleImportClick}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                         >
-                          <Upload size={15} className="text-gray-400" />
+                          <Upload size={14} className="text-gray-400" />
                           Importar (.csi)
                         </button>
-                        <div className="my-1 border-t border-gray-100" />
+                        <div className="my-2 border-t border-gray-100" />
                         <button
                           onClick={handleLogout}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
-                          <LogOut size={15} className="text-red-400" />
+                          <LogOut size={14} className="text-red-400" />
                           Tancar sessió
                         </button>
                       </div>
