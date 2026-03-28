@@ -12,20 +12,12 @@ import { StudySheet } from './components/StudySheet';
 import { DialectStudySheet } from './components/DialectStudySheet';
 import { DialectQuiz } from './components/DialectQuiz';
 import { OfflineButton } from './components/OfflineButton';
-import { CloudSyncStatus } from './components/CloudSyncStatus';
-import { ImportExportPanel } from './components/ImportExportPanel';
-import { cloudSync } from './lib/cloudSync';
-import { useCloudSync } from './hooks/useCloudSync';
 import { BookOpen, Globe, Languages, Pencil } from 'lucide-react';
 
 // Default quiz size
 const DEFAULT_QUIZ_SIZE = 20;
 
 export function App() {
-  const [currentEmail, setCurrentEmail] = useState<string | null>(() => {
-    return localStorage.getItem('fets_current_email');
-  });
-
   const [appSection, setAppSection] = useState<'barbarismes' | 'dialectes'>(() => {
     const savedSection = localStorage.getItem('appSection');
     return (savedSection as 'barbarismes' | 'dialectes') || 'dialectes';
@@ -63,40 +55,6 @@ export function App() {
     const saved = localStorage.getItem('isStudyMode');
     return saved !== null ? saved === 'true' : true;
   });
-
-  // Function to handle email changes
-  const handleEmailChange = async (email: string | null) => {
-    setCurrentEmail(email);
-    if (email) {
-      localStorage.setItem('fets_current_email', email);
-      
-      // Load user's progress from cloud
-      const progress = await cloudSync.loadProgress(email);
-      if (progress) {
-        localStorage.setItem('doneBarbarismes', JSON.stringify(progress.barbarismes));
-        localStorage.setItem('doneDialectes', JSON.stringify(progress.dialectes));
-        // Trigger a re-render to update quiz data
-        window.location.reload();
-      } else {
-        // Initialize new user
-        await cloudSync.getOrCreateUser(email);
-      }
-    } else {
-      localStorage.removeItem('fets_current_email');
-      localStorage.removeItem('doneBarbarismes');
-      localStorage.removeItem('doneDialectes');
-    }
-  };
-
-  // Handle initial email load
-  useEffect(() => {
-    if (currentEmail) {
-      cloudSync.getOrCreateUser(currentEmail);
-    }
-  }, []);
-
-  // Use cloud sync hook for auto-syncing
-  useCloudSync(currentEmail);
   
   // Save study mode to localStorage when it changes
   useEffect(() => {
@@ -302,20 +260,6 @@ export function App() {
     startNewQuiz(undefined, false, { doneFilter: filter });
   };
 
-  const handleImportProgress = async (barbarismes: string[], dialectes: string[]) => {
-    // Update local storage
-    localStorage.setItem('doneBarbarismes', JSON.stringify(barbarismes));
-    localStorage.setItem('doneDialectes', JSON.stringify(dialectes));
-
-    // Sync to cloud if logged in
-    if (currentEmail) {
-      await cloudSync.saveProgress(currentEmail, barbarismes, dialectes);
-    }
-
-    // Reload to refresh quiz data
-    window.location.reload();
-  };
-
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-gradient-to-br from-yellow-50 to-red-100 flex flex-col items-center justify-center" style={{ fontFamily: 'Poppins, sans-serif' }}>
@@ -471,27 +415,6 @@ export function App() {
           <p className="mt-4 text-sm text-red-400 text-left md:text-center">Català CSI - Por Víctor De Nadal - Colegio San Ignacio (CSI) Barcelona</p>
         </footer>
       </div>
-
-      {/* Cloud Sync and Import/Export Panels */}
-      {currentEmail && (
-        <>
-          <CloudSyncStatus email={currentEmail} onEmailChange={handleEmailChange} />
-          <ImportExportPanel
-            email={currentEmail}
-            doneBarbarismes={
-              JSON.parse(localStorage.getItem('doneBarbarismes') || '[]')
-            }
-            doneDialectes={
-              JSON.parse(localStorage.getItem('doneDialectes') || '[]')
-            }
-            onImport={handleImportProgress}
-          />
-        </>
-      )}
-
-      {!currentEmail && (
-        <CloudSyncStatus email={null} onEmailChange={handleEmailChange} />
-      )}
     </div>
   );
 }
