@@ -259,7 +259,27 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       dispatchProgressUpdate();
       setSyncStatus('success');
       setPendingChanges(0);
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg === 'ACCOUNT_NOT_FOUND') {
+        // Account deleted from DB — stop live sync, clear local data, logout
+        isSyncingRef.current = false;
+        setIsSyncing(false);
+        setSyncStatus('idle');
+        if (liveSyncTimerRef.current) clearTimeout(liveSyncTimerRef.current);
+        setLiveSync(false);
+        localStorage.setItem('fets_live_sync', 'false');
+        // Replicate delete-account cleanup
+        localStorage.removeItem('fets_current_email');
+        localStorage.removeItem('doneBarbarismes');
+        localStorage.removeItem('doneDialectes');
+        localStorage.removeItem('fets_item_timestamps');
+        setCurrentUser(null);
+        setShowUserMenu(false);
+        onProgressUpdate([], []);
+        dispatchProgressUpdate();
+        return;
+      }
       setSyncStatus('error');
     } finally {
       isSyncingRef.current = false;
