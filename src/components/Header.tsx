@@ -337,14 +337,14 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                 {/* Guest import/export buttons */}
                 <button
                   onClick={handleExport}
-                  className="flex items-center gap-1 px-2 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors text-sm"
+                  className="flex items-center gap-1 px-2 py-2 text-gray-600 hover:bg-gray-200/50 rounded-lg transition-colors text-sm"
                   title="Exportar (.csi)"
                 >
                   <Download size={16} />
                 </button>
                 <button
                   onClick={handleImportClick}
-                  className="flex items-center gap-1 px-2 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors text-sm"
+                  className="flex items-center gap-1 px-2 py-2 text-gray-600 hover:bg-gray-200/50 rounded-lg transition-colors text-sm"
                   title="Importar (.csi)"
                 >
                   <Upload size={16} />
@@ -360,7 +360,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                   </button>
 
                   {showLoginForm && (
-                    <div className="absolute top-full right-0 mt-2 w-72 bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
                       <p className="text-sm font-semibold text-gray-800 mb-3">Iniciar sessió</p>
                       <div className="space-y-3">
                         <div>
