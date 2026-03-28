@@ -39,6 +39,20 @@ export function CloudSyncPanel({ onProgressUpdate }: CloudSyncPanelProps) {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
+  // Auto-sync on page init if user is logged in and online
+  useEffect(() => {
+    if (currentUser && isOnline && syncStatus === 'idle') {
+      handleSync();
+    }
+  }, []);
+
+  // Auto-sync when coming online
+  useEffect(() => {
+    if (isOnline && currentUser && syncStatus === 'idle') {
+      handleSync();
+    }
+  }, [isOnline]);
+
   const handleSync = async () => {
     if (!currentUser || !isOnline) return;
     setIsSyncing(true);
@@ -139,10 +153,10 @@ export function CloudSyncPanel({ onProgressUpdate }: CloudSyncPanelProps) {
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-500">Estat:</span>
               <span className="flex items-center gap-1">
-                {syncStatus === 'syncing' && <><RefreshCw size={13} className="animate-spin text-blue-500" /><span className="text-blue-500">Sincronitzant...</span></>}
-                {syncStatus === 'success' && <><CheckCircle size={13} className="text-green-500" /><span className="text-green-500">Sincronitzat</span></>}
-                {syncStatus === 'error' && <><AlertCircle size={13} className="text-red-500" /><span className="text-red-500">Error</span></>}
-                {syncStatus === 'idle' && <span className="text-gray-400">—</span>}
+                {syncStatus === 'syncing' && <><RefreshCw size={13} className="animate-spin text-blue-500 transition-opacity duration-300 opacity-100" /><span className="text-blue-500 transition-opacity duration-300 opacity-100">Sincronitzant...</span></>}
+                {syncStatus === 'success' && <><CheckCircle size={13} className="text-green-500 transition-opacity duration-300 opacity-100" /><span className="text-green-500 transition-opacity duration-300 opacity-100">Sincronitzat</span></>}
+                {syncStatus === 'error' && <><AlertCircle size={13} className="text-red-500 transition-opacity duration-300 opacity-100" /><span className="text-red-500 transition-opacity duration-300 opacity-100">Error</span></>}
+                {syncStatus === 'idle' && <span className="text-gray-400 transition-opacity duration-300 opacity-100">—</span>}
               </span>
             </div>
 
