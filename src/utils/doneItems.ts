@@ -87,7 +87,6 @@ export function toggleDone(barbarism: string): boolean {
 
 export function markManyAsDone(barbarisms: string[]): void {
   const done = getDoneItems();
-  const now = new Date().toISOString();
   barbarisms.forEach(b => {
     done.add(b);
     recordLocalChange(`b:${b}`, true);

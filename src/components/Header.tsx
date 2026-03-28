@@ -60,7 +60,8 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
   useEffect(() => {
     if (currentUser) {
-      setPendingChanges(cloudSync.getPendingChangesCount(currentUser));
+      // Pending changes are tracked visually via syncStatus only
+      setPendingChanges(0);
     }
   }, [currentUser, syncStatus]);
 

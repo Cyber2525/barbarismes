@@ -11,3 +11,4 @@ if (supabaseUrl && supabaseAnonKey) {
 
 export const supabase = supabaseInstance;
 export const isSupabaseConfigured = () => !!supabase;
+
