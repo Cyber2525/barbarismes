@@ -529,29 +529,28 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                       <p className="text-sm font-semibold text-gray-800 mb-3">{currentUser}</p>
                       <div className="space-y-1">
                         {/* Live sync row with toggle */}
-                        <div className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 rounded-lg transition-colors">
-                          {/* Left zone: hover here triggers text change + sync on click when live OFF */}
-                          <div
-                            className="flex items-center gap-2 flex-1 cursor-pointer rounded-md hover:bg-gray-100 -mx-1 px-1 py-0.5 transition-colors"
-                            onMouseEnter={() => setLiveSyncHovered(true)}
-                            onMouseLeave={() => setLiveSyncHovered(false)}
-                            onClick={() => {
-                              if (!liveSync) {
-                                handleSync();
-                                setShowUserMenu(false);
-                              }
-                            }}
-                          >
-                            {liveSync ? (
-                              <Radio size={14} className="text-red-500" />
-                            ) : (
-                              <RefreshCw size={14} className="text-gray-400" />
-                            )}
-                            <span>
-                              {liveSyncHovered ? 'Sincronitzar ara' : 'Sincronització en viu'}
-                            </span>
-                          </div>
-                          {/* Right zone: toggle — no text change on hover here */}
+                        <div
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                          onMouseEnter={() => setLiveSyncHovered(true)}
+                          onMouseLeave={() => setLiveSyncHovered(false)}
+                          onClick={() => {
+                            if (!liveSync) {
+                              handleSync();
+                              setShowUserMenu(false);
+                            }
+                          }}
+                        >
+                          {/* Icon: always static, no spin, no color change */}
+                          {liveSync ? (
+                            <Radio size={14} className="text-gray-400" />
+                          ) : (
+                            <RefreshCw size={14} className="text-gray-400" />
+                          )}
+                          {/* Text: "Sincronització en viu" always, hover shows "Sincronitzar ara" */}
+                          <span className="flex-1">
+                            {liveSyncHovered ? 'Sincronitzar ara' : 'Sincronització en viu'}
+                          </span>
+                          {/* Toggle switch */}
                           <button
                             onClick={(e) => { e.stopPropagation(); toggleLiveSync(); }}
                             className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${liveSync ? 'bg-red-500' : 'bg-gray-300'}`}
