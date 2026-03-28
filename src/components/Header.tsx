@@ -575,7 +575,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                               aria-pressed={liveSync}
                               tabIndex={-1}
                             >
-                              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${liveSync ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${liveSync ? 'translate-x-[19px]' : 'translate-x-[2px]'}`} />
                             </button>
                           </div>
                         </div>
