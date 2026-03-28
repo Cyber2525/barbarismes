@@ -1,27 +1,38 @@
 import { useState, useEffect, useRef } from 'react';
-import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Wifi, WifiOff, Download, Upload } from 'lucide-react';
 import { cloudSync } from '../lib/cloudSync';
+import { downloadCSI, readCSIFile, mergeCSIData, CSIData } from '../lib/csiExport';
 
 interface HeaderProps {
   onProgressUpdate: (barbarismes: string[], dialectes: string[]) => void;
 }
 
 export function Header({ onProgressUpdate }: HeaderProps) {
-  const [currentUser, setCurrentUser] = useState<string | null>(() => 
+  const [currentUser, setCurrentUser] = useState<string | null>(() =>
     localStorage.getItem('fets_current_email')
   );
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
+  const [pendingChanges, setPendingChanges] = useState(0);
+
+  // Login form state
+  const [showLoginForm, setShowLoginForm] = useState(false);
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
-  const [showLoginForm, setShowLoginForm] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const loginRef = useRef<HTMLDivElement>(null);
 
-  const handleOnline = () => setIsOnline(true);
-  const handleOffline = () => setIsOnline(false);
+  // User menu state (when logged in)
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Import state
+  const [pendingImport, setPendingImport] = useState<CSIData | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
@@ -31,19 +42,39 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   }, []);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+    if (currentUser) {
+      setPendingChanges(cloudSync.getPendingChangesCount(currentUser));
+    }
+  }, [currentUser, syncStatus]);
+
+  // Close login form on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (loginRef.current && !loginRef.current.contains(e.target as Node)) {
         setShowLoginForm(false);
       }
     };
-
-    if (showLoginForm) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    if (showLoginForm) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, [showLoginForm]);
+
+  // Close user menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    if (showUserMenu) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showUserMenu]);
+
+  // Auto-sync when coming online
+  useEffect(() => {
+    if (isOnline && currentUser && pendingChanges > 0) {
+      handleSync();
+    }
+  }, [isOnline]);
 
   const validateEmail = (value: string): boolean => {
     if (!cloudSync.validateEmail(value)) {
@@ -55,47 +86,27 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   };
 
   const handleLogin = async () => {
-    console.log('[v0] Login attempt with email:', email);
-    if (!validateEmail(email)) {
-      console.log('[v0] Email validation failed');
-      return;
-    }
-
+    if (!validateEmail(email)) return;
     setIsSyncing(true);
     setSyncStatus('syncing');
-    console.log('[v0] Starting login process...');
-
     try {
-      console.log('[v0] Calling getOrCreateUser...');
       const user = await cloudSync.getOrCreateUser(email);
-      console.log('[v0] getOrCreateUser result:', user);
-      
       if (user) {
-        console.log('[v0] User created/found, saving to localStorage');
         localStorage.setItem('fets_current_email', email);
         setCurrentUser(email);
         setShowLoginForm(false);
         setEmail('');
-
-        // Load cloud progress
-        console.log('[v0] Loading progress from cloud...');
         const progress = await cloudSync.loadProgress(email);
-        console.log('[v0] Progress loaded:', progress);
-        
         if (progress) {
           localStorage.setItem('doneBarbarismes', JSON.stringify(progress.barbarismes));
           localStorage.setItem('doneDialectes', JSON.stringify(progress.dialectes));
           onProgressUpdate(progress.barbarismes, progress.dialectes);
         }
-
         setSyncStatus('success');
-        console.log('[v0] Login successful');
       } else {
-        console.log('[v0] getOrCreateUser returned null');
         setSyncStatus('error');
       }
-    } catch (error) {
-      console.log('[v0] Login error:', error);
+    } catch {
       setSyncStatus('error');
     } finally {
       setIsSyncing(false);
@@ -107,8 +118,77 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     localStorage.removeItem('fets_current_email');
     setCurrentUser(null);
     setEmail('');
-    setShowLoginForm(false);
+    setShowUserMenu(false);
     setSyncStatus('idle');
+  };
+
+  const handleSync = async () => {
+    if (!currentUser || !isOnline) return;
+    setIsSyncing(true);
+    setSyncStatus('syncing');
+    try {
+      const localBarbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
+      const localDialectes = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
+      await cloudSync.saveProgress(currentUser, localBarbarismes, localDialectes);
+      await cloudSync.processQueue(currentUser);
+      const progress = await cloudSync.loadProgress(currentUser);
+      if (progress) {
+        localStorage.setItem('doneBarbarismes', JSON.stringify(progress.barbarismes));
+        localStorage.setItem('doneDialectes', JSON.stringify(progress.dialectes));
+        onProgressUpdate(progress.barbarismes, progress.dialectes);
+      }
+      setSyncStatus('success');
+      setPendingChanges(0);
+    } catch {
+      setSyncStatus('error');
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncStatus('idle'), 2000);
+    }
+  };
+
+  const handleExport = () => {
+    const barbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
+    const dialectes = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
+    downloadCSI(currentUser, barbarismes, dialectes);
+    setShowUserMenu(false);
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+    setShowUserMenu(false);
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const data = await readCSIFile(file);
+    if (data) {
+      setPendingImport(data);
+    } else {
+      alert('Error llegint el fitxer CSI');
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleImportConfirm = async (mode: 'merge' | 'replace') => {
+    if (!pendingImport) return;
+    const existing = {
+      barbarismes: JSON.parse(localStorage.getItem('doneBarbarismes') || '[]'),
+      dialectes: JSON.parse(localStorage.getItem('doneDialectes') || '[]'),
+    };
+    const newData = mode === 'merge'
+      ? mergeCSIData(existing, pendingImport)
+      : { barbarismes: pendingImport.barbarismes, dialectes: pendingImport.dialectes };
+
+    localStorage.setItem('doneBarbarismes', JSON.stringify(newData.barbarismes));
+    localStorage.setItem('doneDialectes', JSON.stringify(newData.dialectes));
+
+    if (currentUser && isOnline) {
+      await cloudSync.saveProgress(currentUser, newData.barbarismes, newData.dialectes);
+    }
+    onProgressUpdate(newData.barbarismes, newData.dialectes);
+    setPendingImport(null);
   };
 
   const displayName = currentUser ? currentUser.split('.')[0].toUpperCase() : null;
@@ -118,58 +198,25 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-lg md:text-xl font-bold text-red-800">Català CSI</h1>
-          
-          <div className="flex items-center gap-3 relative">
-            {/* Online Status */}
-            {currentUser && (
-              <div className="flex items-center gap-1 text-xs text-gray-600">
-                {isOnline ? (
-                  <Wifi size={16} className="text-green-500" />
-                ) : (
-                  <WifiOff size={16} className="text-yellow-500" />
-                )}
-              </div>
-            )}
 
-            {/* Sync Status */}
-            {currentUser && syncStatus !== 'idle' && (
-              <div className="flex items-center gap-1 text-xs">
-                {syncStatus === 'syncing' && (
-                  <>
-                    <RefreshCw size={14} className="animate-spin text-blue-500" />
-                  </>
-                )}
-                {syncStatus === 'success' && (
-                  <CheckCircle size={14} className="text-green-500" />
-                )}
-                {syncStatus === 'error' && (
-                  <AlertCircle size={14} className="text-red-500" />
-                )}
-              </div>
-            )}
-
-            {/* Login Button Area */}
-            {!currentUser ? (
-              <div ref={dropdownRef} className="relative">
+          <div className="flex items-center gap-3">
+            {/* --- NOT LOGGED IN: Login button --- */}
+            {!currentUser && (
+              <div ref={loginRef} className="relative">
                 <button
-                  onClick={() => {
-                    console.log('[v0] Login button clicked');
-                    setShowLoginForm(!showLoginForm);
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  onClick={() => setShowLoginForm(v => !v)}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
                 >
                   <LogIn size={16} />
-                  <span className="text-sm">Login</span>
+                  Login
                 </button>
 
-                {/* Login Form Dropdown */}
                 {showLoginForm && (
                   <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
+                    <p className="text-sm font-semibold text-gray-800 mb-3">Iniciar sessió</p>
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Email CSI
-                        </label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Email CSI</label>
                         <input
                           type="text"
                           value={email}
@@ -177,61 +224,146 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                             setEmail(e.target.value.toLowerCase());
                             if (emailError) validateEmail(e.target.value.toLowerCase());
                           }}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter' && email && !isSyncing) {
-                              console.log('[v0] Enter key pressed');
-                              handleLogin();
-                            }
-                          }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' && email && !isSyncing) handleLogin(); }}
                           placeholder="12345678.santignasi@fje.edu"
-                          className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${
-                            emailError ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                          className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${emailError ? 'border-red-500' : 'border-gray-300'}`}
                           autoFocus
                         />
-                        {emailError && (
-                          <p className="text-xs text-red-500 mt-1">{emailError}</p>
-                        )}
+                        {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
                       </div>
                       <button
-                        onClick={() => {
-                          console.log('[v0] Submit button clicked, email:', email, 'isSyncing:', isSyncing);
-                          handleLogin();
-                        }}
+                        onClick={handleLogin}
                         disabled={isSyncing || !email}
-                        className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+                        className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors text-sm"
                       >
-                        {isSyncing ? (
-                          <RefreshCw size={16} className="animate-spin" />
-                        ) : (
-                          <LogIn size={16} />
-                        )}
-                        Login
+                        {isSyncing ? <RefreshCw size={15} className="animate-spin" /> : <LogIn size={15} />}
+                        Entrar
                       </button>
                     </div>
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 hidden md:inline">
-                  {displayName}
-                </span>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                >
-                  <LogOut size={16} />
-                  <span className="text-sm">Logout</span>
-                </button>
-              </div>
+            )}
+
+            {/* --- LOGGED IN: status + user button --- */}
+            {currentUser && (
+              <>
+                {/* Online / sync indicator */}
+                <div className="flex items-center gap-1 text-xs text-gray-500">
+                  {isOnline ? <Wifi size={14} className="text-green-500" /> : <WifiOff size={14} className="text-yellow-500" />}
+                  {syncStatus === 'syncing' && <RefreshCw size={13} className="animate-spin text-blue-500" />}
+                  {syncStatus === 'success' && <CheckCircle size={13} className="text-green-500" />}
+                  {syncStatus === 'error' && <AlertCircle size={13} className="text-red-500" />}
+                  {pendingChanges > 0 && (
+                    <span className="bg-yellow-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">{pendingChanges}</span>
+                  )}
+                </div>
+
+                {/* User menu button */}
+                <div ref={userMenuRef} className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(v => !v)}
+                    className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm text-gray-700"
+                  >
+                    {isOnline ? <Cloud size={15} className="text-green-600" /> : <CloudOff size={15} className="text-yellow-600" />}
+                    <span className="font-medium">{displayName}</span>
+                  </button>
+
+                  {showUserMenu && (
+                    <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50">
+                      {/* Info row */}
+                      <div className="px-4 py-3 bg-red-50 border-b border-red-100">
+                        <p className="text-xs text-gray-500 truncate">{currentUser}</p>
+                        <p className="text-xs mt-0.5 flex items-center gap-1">
+                          {isOnline
+                            ? <span className="text-green-600 flex items-center gap-1"><Wifi size={11} /> Online</span>
+                            : <span className="text-yellow-600 flex items-center gap-1"><WifiOff size={11} /> Offline</span>
+                          }
+                          {syncStatus === 'syncing' && <span className="text-blue-500 flex items-center gap-1"><RefreshCw size={11} className="animate-spin" /> Sincronitzant...</span>}
+                          {syncStatus === 'success' && <span className="text-green-500 flex items-center gap-1"><CheckCircle size={11} /> Sincronitzat</span>}
+                          {syncStatus === 'error' && <span className="text-red-500 flex items-center gap-1"><AlertCircle size={11} /> Error</span>}
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="py-1">
+                        <button
+                          onClick={() => { handleSync(); setShowUserMenu(false); }}
+                          disabled={isSyncing || !isOnline}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <RefreshCw size={15} className={isSyncing ? 'animate-spin text-blue-500' : 'text-gray-400'} />
+                          Sincronitzar ara
+                        </button>
+                        <button
+                          onClick={handleExport}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <Download size={15} className="text-gray-400" />
+                          Exportar (.csi)
+                        </button>
+                        <button
+                          onClick={handleImportClick}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          <Upload size={15} className="text-gray-400" />
+                          Importar (.csi)
+                        </button>
+                        <div className="my-1 border-t border-gray-100" />
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut size={15} className="text-red-400" />
+                          Tancar sessió
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>
       </header>
 
-      {/* Spacer to offset fixed header */}
-      <div className="h-16"></div>
+      {/* Spacer */}
+      <div className="h-16" />
+
+      {/* Hidden file input */}
+      <input ref={fileInputRef} type="file" accept=".csi" onChange={handleFileSelect} className="hidden" />
+
+      {/* Import dialog */}
+      {pendingImport && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+            <h3 className="text-base font-semibold text-gray-900 mb-1">Importar fitxer CSI</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              De: <strong>{pendingImport.userName}</strong> &mdash; {pendingImport.barbarismes.length} barbarismes, {pendingImport.dialectes.length} dialectes
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => handleImportConfirm('merge')}
+                className="w-full bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-sm transition-colors"
+              >
+                Fusionar (conserva tot)
+              </button>
+              <button
+                onClick={() => handleImportConfirm('replace')}
+                className="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 text-sm transition-colors"
+              >
+                Substituir (sobreescriu)
+              </button>
+              <button
+                onClick={() => setPendingImport(null)}
+                className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 text-sm transition-colors"
+              >
+                Cancel·lar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
