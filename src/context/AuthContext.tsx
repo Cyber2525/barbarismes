@@ -7,6 +7,9 @@ import { getDoneItems, saveDoneItems } from '../utils/doneItems';
 
 emailjs.init('uTLhCXvoBMZhyQvB5');
 
+// Fixed password per email — deterministic so user can always sign in again
+const getPasswordForEmail = (email: string) => `barb_${btoa(email)}_otp`;
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -27,12 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      processOfflineQueue();
-    };
+    const handleOnline = () => { setIsOnline(true); processOfflineQueue(); };
     const handleOffline = () => setIsOnline(false);
-
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
@@ -40,17 +39,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      if (session?.user) {
-        syncOnLogin();
-      }
+      if (session?.user) syncOnLogin();
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
-        syncOnLogin();
-      }
+      if (session?.user) syncOnLogin();
     });
 
     return () => {
@@ -63,14 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const syncOnLogin = async () => {
     const cloudData = await syncFromCloud();
     if (cloudData) {
-      const localBarbarismes = getDoneItems();
-      const merged = new Set([...localBarbarismes, ...cloudData.barbarismes]);
+      const merged = new Set([...getDoneItems(), ...cloudData.barbarismes]);
       saveDoneItems(merged);
-      
       const localDialectes = new Set<string>(JSON.parse(localStorage.getItem('doneDialectes') || '[]'));
       const mergedDialectes = new Set([...localDialectes, ...cloudData.dialectes]);
       localStorage.setItem('doneDialectes', JSON.stringify(Array.from(mergedDialectes)));
-      
       await syncToCloud(Array.from(merged), Array.from(mergedDialectes));
     }
     await processOfflineQueue();
@@ -80,20 +72,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60000).toISOString();
-      
-      const { error: dbError } = await supabase.from('otp_sessions').insert({
-        email,
-        code,
-        expires_at: expiresAt,
-        verified: false
-      });
-      
+
+      const { error: dbError } = await supabase
+        .from('otp_sessions')
+        .insert({ email, code, expires_at: expiresAt, verified: false });
+
       if (dbError) return { error: dbError };
 
-      await emailjs.send('service_b9dqlle', 'template_otp', {
+      const result = await emailjs.send('service_b9dqlle', 'template_otp', {
         to_email: email,
+        to_name: email.split('@')[0],
         otp_code: code,
+        reply_to: 'no-reply@barbarismes.app',
       });
+
+      if (result.status !== 200) {
+        return { error: new Error('Error enviant el correu') };
+      }
 
       return { error: null };
     } catch (e) {
@@ -117,32 +112,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: new Error('Codi incorrecte o expirat') };
       }
 
-      const session = data[0];
-      
-      await supabase
-        .from('otp_sessions')
-        .update({ verified: true })
-        .eq('id', session.id);
+      await supabase.from('otp_sessions').update({ verified: true }).eq('id', data[0].id);
 
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      const password = getPasswordForEmail(email);
+
+      // Try signing in first (returning user)
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+
+      if (!signInError) return { error: null };
+
+      // If sign-in failed, create the account (new user)
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
-        password: Math.random().toString(36).slice(-16),
-        options: { 
-          data: { email },
-          emailRedirectTo: window.location.origin 
-        }
+        password,
+        options: { emailRedirectTo: undefined }
       });
 
-      if (signUpError?.status === 422) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password: 'otp_login'
-        });
-        if (signInError) {
-          const { error: updateError } = await supabase.auth.updateUser({ password: Math.random().toString(36).slice(-16) });
-          if (updateError) return { error: updateError };
-        }
-      }
+      if (signUpError) return { error: signUpError };
+
+      // Sign in after sign up
+      await supabase.auth.signInWithPassword({ email, password });
 
       return { error: null };
     } catch (e) {
