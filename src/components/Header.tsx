@@ -7,12 +7,6 @@ interface HeaderProps {
   onProgressUpdate: (barbarismes: string[], dialectes: string[]) => void;
 }
 
-// Cloud progress for merge dialog
-interface CloudProgress {
-  barbarismes: string[];
-  dialectes: string[];
-}
-
 export function Header({ onProgressUpdate }: HeaderProps) {
   const [currentUser, setCurrentUser] = useState<string | null>(() =>
     localStorage.getItem('fets_current_email')
@@ -35,9 +29,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   // Import state
   const [pendingImport, setPendingImport] = useState<CSIData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Login merge/replace dialog
-  const [pendingLoginMerge, setPendingLoginMerge] = useState<{ email: string; cloud: CloudProgress; local: CloudProgress } | null>(null);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -101,44 +92,16 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     try {
       const user = await cloudSync.getOrCreateUser(email);
       if (user) {
-        const cloudProgress = await cloudSync.loadProgress(email);
-        const localBarbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
-        const localDialectes = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
-        
-        const cloudHasData = cloudProgress && (cloudProgress.barbarismes.length > 0 || cloudProgress.dialectes.length > 0);
-        const localHasData = localBarbarismes.length > 0 || localDialectes.length > 0;
-
-        // If both cloud and local have data, ask user what to do
-        if (cloudHasData && localHasData) {
-          setShowLoginForm(false);
-          setPendingLoginMerge({
-            email,
-            cloud: cloudProgress!,
-            local: { barbarismes: localBarbarismes, dialectes: localDialectes }
-          });
-          setIsSyncing(false);
-          setSyncStatus('idle');
-          return;
-        }
-
-        // Otherwise, auto-resolve
         localStorage.setItem('fets_current_email', email);
         setCurrentUser(email);
         setShowLoginForm(false);
         setEmail('');
-
-        if (cloudHasData) {
-          // Cloud has data, local empty -> use cloud
-          localStorage.setItem('doneBarbarismes', JSON.stringify(cloudProgress!.barbarismes));
-          localStorage.setItem('doneDialectes', JSON.stringify(cloudProgress!.dialectes));
-          onProgressUpdate(cloudProgress!.barbarismes, cloudProgress!.dialectes);
-        } else if (localHasData) {
-          // Local has data, cloud empty -> push local to cloud
-          await cloudSync.saveProgress(email, localBarbarismes, localDialectes);
-          onProgressUpdate(localBarbarismes, localDialectes);
+        const progress = await cloudSync.loadProgress(email);
+        if (progress) {
+          localStorage.setItem('doneBarbarismes', JSON.stringify(progress.barbarismes));
+          localStorage.setItem('doneDialectes', JSON.stringify(progress.dialectes));
+          onProgressUpdate(progress.barbarismes, progress.dialectes);
         }
-        // Both empty -> nothing to do
-
         setSyncStatus('success');
       } else {
         setSyncStatus('error');
@@ -151,48 +114,12 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     }
   };
 
-  const handleLoginMergeConfirm = async (mode: 'merge' | 'replace') => {
-    if (!pendingLoginMerge) return;
-    const { email: userEmail, cloud, local } = pendingLoginMerge;
-
-    let finalBarbarismes: string[];
-    let finalDialectes: string[];
-
-    if (mode === 'merge') {
-      finalBarbarismes = Array.from(new Set([...cloud.barbarismes, ...local.barbarismes]));
-      finalDialectes = Array.from(new Set([...cloud.dialectes, ...local.dialectes]));
-    } else {
-      // Replace = use cloud data, discard local
-      finalBarbarismes = cloud.barbarismes;
-      finalDialectes = cloud.dialectes;
-    }
-
-    localStorage.setItem('fets_current_email', userEmail);
-    localStorage.setItem('doneBarbarismes', JSON.stringify(finalBarbarismes));
-    localStorage.setItem('doneDialectes', JSON.stringify(finalDialectes));
-    
-    // Save merged to cloud
-    await cloudSync.saveProgress(userEmail, finalBarbarismes, finalDialectes);
-    
-    setCurrentUser(userEmail);
-    setPendingLoginMerge(null);
-    setEmail('');
-    onProgressUpdate(finalBarbarismes, finalDialectes);
-    setSyncStatus('success');
-    setTimeout(() => setSyncStatus('idle'), 2000);
-  };
-
   const handleLogout = () => {
-    // Clear local progress on logout
     localStorage.removeItem('fets_current_email');
-    localStorage.removeItem('doneBarbarismes');
-    localStorage.removeItem('doneDialectes');
     setCurrentUser(null);
     setEmail('');
     setShowUserMenu(false);
     setSyncStatus('idle');
-    // Update UI to show empty progress
-    onProgressUpdate([], []);
   };
 
   const handleSync = async () => {
@@ -273,26 +200,9 @@ export function Header({ onProgressUpdate }: HeaderProps) {
           <h1 className="text-lg md:text-xl font-bold text-red-600">Català CSI</h1>
 
           <div className="flex items-center gap-3">
-            {/* --- NOT LOGGED IN: Import/Export + Login button --- */}
+            {/* --- NOT LOGGED IN: Login button --- */}
             {!currentUser && (
-              <>
-                {/* Local import/export when not logged in */}
-                <button
-                  onClick={handleExport}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Exportar (.csi)"
-                >
-                  <Download size={18} />
-                </button>
-                <button
-                  onClick={handleImportClick}
-                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Importar (.csi)"
-                >
-                  <Upload size={18} />
-                </button>
-
-                <div ref={loginRef} className="relative">
+              <div ref={loginRef} className="relative">
                 <button
                   onClick={() => setShowLoginForm(v => !v)}
                   className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
@@ -333,7 +243,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                   </div>
                 )}
               </div>
-              </>
             )}
 
             {/* --- LOGGED IN: status + user button --- */}
@@ -432,38 +341,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
               </button>
               <button
                 onClick={() => setPendingImport(null)}
-                className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 text-sm transition-colors"
-              >
-                Cancel·lar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Login merge/replace dialog */}
-      {pendingLoginMerge && (
-        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
-            <h3 className="text-base font-semibold text-gray-900 mb-1">Progres existent</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              Tens progres local ({pendingLoginMerge.local.barbarismes.length} barbarismes) i al nuvol ({pendingLoginMerge.cloud.barbarismes.length} barbarismes). Que vols fer?
-            </p>
-            <div className="space-y-2">
-              <button
-                onClick={() => handleLoginMergeConfirm('merge')}
-                className="w-full bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 text-sm transition-colors"
-              >
-                Fusionar (conserva tot)
-              </button>
-              <button
-                onClick={() => handleLoginMergeConfirm('replace')}
-                className="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 text-sm transition-colors"
-              >
-                Usar nuvol (perd local)
-              </button>
-              <button
-                onClick={() => setPendingLoginMerge(null)}
                 className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 text-sm transition-colors"
               >
                 Cancel·lar
