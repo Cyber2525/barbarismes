@@ -8,7 +8,7 @@ import { User, LogOut, Cloud, CloudOff, Download, Upload, RefreshCw, Mail, Alert
 type AuthStep = 'idle' | 'email' | 'otp';
 
 export function AuthButton() {
-  const { user, loading, isOnline, requestOtp, verifyOtp, signOut, syncNow } = useAuth();
+  const { user, loading, isOnline, signInWithEmail, verifyOtp, signOut, syncNow } = useAuth();
   const [showMenu, setShowMenu] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [authStep, setAuthStep] = useState<AuthStep>('idle');
@@ -26,10 +26,8 @@ export function AuthButton() {
     if (!email.includes('@')) { setAuthError('Correu no valid'); return; }
     setSending(true);
     setAuthError('');
-    console.log('[v0] Sending OTP to:', email);
-    const { error } = await requestOtp(email);
+    const { error } = await signInWithEmail(email);
     setSending(false);
-    console.log('[v0] OTP result:', error ? error.message : 'OK');
     if (error) { setAuthError(error.message); return; }
     setAuthStep('otp');
   };
@@ -147,14 +145,12 @@ export function AuthButton() {
         </button>
         
         {showMenu && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => { setShowMenu(false); resetAuth(); }} />
-            <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-red-100 z-50 p-4">
+          <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-lg border border-red-100 z-50 p-4">
             {authStep === 'otp' ? (
               <div>
                 <p className="text-sm font-medium text-gray-800 mb-1">Codi de verificacio</p>
                 <p className="text-xs text-gray-500 mb-4">Introdueix el codi de 6 digits enviat a <span className="font-medium text-gray-700">{email}</span></p>
-                <div className="flex gap-1.5 justify-center mb-3">
+                <div className="flex gap-2 justify-center mb-3">
                   {otp.map((digit, i) => (
                     <input
                       key={i}
@@ -165,7 +161,7 @@ export function AuthButton() {
                       value={digit}
                       onChange={e => handleOtpInput(i, e.target.value)}
                       onKeyDown={e => handleOtpKeyDown(i, e)}
-                      className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none hover:border-gray-400 transition"
+                      className="w-10 h-12 text-center text-lg font-bold border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none"
                     />
                   ))}
                 </div>
@@ -216,9 +212,8 @@ export function AuthButton() {
                 </button>
               </>
             )}
-            </div>
-          </>
-          )}
+          </div>
+        )}
         <input ref={fileInputRef} type="file" accept=".csi" onChange={handleFileChange} className="hidden" />
         
         {showImportModal && importData && (

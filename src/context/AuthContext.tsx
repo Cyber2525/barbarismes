@@ -9,7 +9,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isOnline: boolean;
-  signInWithEmail: (email: string) => Promise<{ error: Error | null; sent: boolean }>;
+  signInWithEmail: (email: string) => Promise<{ error: Error | null }>;
+  verifyOtp: (email: string, token: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   syncNow: () => Promise<void>;
 }
@@ -23,8 +24,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   useEffect(() => {
-    const handleOnline = () => { setIsOnline(true); processOfflineQueue(); };
+    const handleOnline = () => {
+      setIsOnline(true);
+      processOfflineQueue();
+    };
     const handleOffline = () => setIsOnline(false);
+
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
@@ -32,13 +37,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      if (session?.user) syncOnLogin();
+      if (session?.user) {
+        syncOnLogin();
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) syncOnLogin();
+      if (session?.user) {
+        syncOnLogin();
+      }
     });
 
     return () => {
@@ -51,80 +60,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const syncOnLogin = async () => {
     const cloudData = await syncFromCloud();
     if (cloudData) {
-      const merged = new Set([...getDoneItems(), ...cloudData.barbarismes]);
+      const localBarbarismes = getDoneItems();
+      const merged = new Set([...localBarbarismes, ...cloudData.barbarismes]);
       saveDoneItems(merged);
+      
       const localDialectes = new Set<string>(JSON.parse(localStorage.getItem('doneDialectes') || '[]'));
       const mergedDialectes = new Set([...localDialectes, ...cloudData.dialectes]);
       localStorage.setItem('doneDialectes', JSON.stringify(Array.from(mergedDialectes)));
+      
       await syncToCloud(Array.from(merged), Array.from(mergedDialectes));
     }
     await processOfflineQueue();
   };
 
-  const requestOtp = async (email: string) => {
-    try {
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60000).toISOString();
-
-      const { error: dbError } = await supabase
-        .from('otp_sessions')
-        .insert({ email, code, expires_at: expiresAt, verified: false });
-
-      if (dbError) return { error: dbError };
-
-      await emailjs.send('service_b9dqlle', 'template_otp', {
-        to_email: email,
-        to_name: email.split('@')[0],
-        otp_code: code,
-      });
-
-      return { error: null };
-    } catch (e) {
-      return { error: e as Error };
-    }
+  const signInWithEmail = async (email: string) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { shouldCreateUser: true }
+    });
+    return { error };
   };
 
-  const verifyOtp = async (email: string, code: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('otp_sessions')
-        .select('*')
-        .eq('email', email)
-        .eq('code', code)
-        .gt('expires_at', new Date().toISOString())
-        .eq('verified', false)
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (error || !data?.length) {
-        return { error: new Error('Codi incorrecte o expirat') };
-      }
-
-      await supabase.from('otp_sessions').update({ verified: true }).eq('id', data[0].id);
-
-      const password = getPasswordForEmail(email);
-
-      // Try signing in first (returning user)
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-
-      if (!signInError) return { error: null };
-
-      // If sign-in failed, create the account (new user)
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: undefined }
-      });
-
-      if (signUpError) return { error: signUpError };
-
-      // Sign in after sign up
-      await supabase.auth.signInWithPassword({ email, password });
-
-      return { error: null };
-    } catch (e) {
-      return { error: e as Error };
-    }
+  const verifyOtp = async (email: string, token: string) => {
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'email'
+    });
+    return { error };
   };
 
   const signOut = async () => {
@@ -142,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isOnline, requestOtp, verifyOtp, signOut, syncNow }}>
+    <AuthContext.Provider value={{ user, session, loading, isOnline, signInWithEmail, verifyOtp, signOut, syncNow }}>
       {children}
     </AuthContext.Provider>
   );
