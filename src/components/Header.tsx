@@ -22,9 +22,10 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [pendingChanges, setPendingChanges] = useState(0);
-  const [liveSync, setLiveSync] = useState<boolean>(() =>
-    localStorage.getItem('fets_live_sync') !== 'false'
-  );
+  const [liveSync, setLiveSync] = useState<boolean>(() => {
+    const val = localStorage.getItem('fets_live_sync');
+    return val !== 'false';
+  });
   const [liveSyncHovered, setLiveSyncHovered] = useState(false);
   const liveSyncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -107,13 +108,13 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Live sync interval — every 30s when enabled, user logged in, and online
+  // Live sync interval — every 2s when enabled, user logged in, and online
   useEffect(() => {
     if (liveSyncIntervalRef.current) clearInterval(liveSyncIntervalRef.current);
     if (liveSync && currentUser && isOnline) {
       liveSyncIntervalRef.current = setInterval(() => {
         handleSync();
-      }, 30000);
+      }, 2000);
     }
     return () => {
       if (liveSyncIntervalRef.current) clearInterval(liveSyncIntervalRef.current);
