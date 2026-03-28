@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload } from 'lucide-react';
+import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload, Radio } from 'lucide-react';
 import { cloudSync } from '../lib/cloudSync';
 import { downloadCSI, readCSIFile, mergeCSIData, CSIData } from '../lib/csiExport';
 import { dispatchProgressUpdate } from '../utils/doneItems';
@@ -46,6 +46,12 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [downloadedBackup, setDownloadedBackup] = useState(false);
+
+  // Live sync state
+  const [liveSync, setLiveSync] = useState<boolean>(() => localStorage.getItem('fets_live_sync') === 'true');
+  const [liveSyncHovered, setLiveSyncHovered] = useState(false);
+  const isSyncingRef = useRef(false);
+  const liveSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -243,6 +249,8 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
   const handleSync = useCallback(async () => {
     if (!currentUser || !isOnline) return;
+    if (isSyncingRef.current) return;
+    isSyncingRef.current = true;
     setIsSyncing(true);
     setSyncStatus('syncing');
     try {
@@ -254,10 +262,39 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     } catch {
       setSyncStatus('error');
     } finally {
+      isSyncingRef.current = false;
       setIsSyncing(false);
       setTimeout(() => setSyncStatus('idle'), 2000);
     }
   }, [currentUser, isOnline, onProgressUpdate]);
+
+  const toggleLiveSync = useCallback(() => {
+    setLiveSync(prev => {
+      const next = !prev;
+      localStorage.setItem('fets_live_sync', String(next));
+      return next;
+    });
+  }, []);
+
+  // Live sync loop — schedules next sync 2s after the previous one finishes
+  useEffect(() => {
+    if (!liveSync || !currentUser || !isOnline) {
+      if (liveSyncTimerRef.current) clearTimeout(liveSyncTimerRef.current);
+      return;
+    }
+    const schedule = () => {
+      liveSyncTimerRef.current = setTimeout(async () => {
+        if (!isSyncingRef.current) {
+          await handleSync();
+        }
+        schedule();
+      }, 2000);
+    };
+    schedule();
+    return () => {
+      if (liveSyncTimerRef.current) clearTimeout(liveSyncTimerRef.current);
+    };
+  }, [liveSync, currentUser, isOnline, handleSync]);
 
   const handleExport = () => {
     const barbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
@@ -442,31 +479,39 @@ export function Header({ onProgressUpdate }: HeaderProps) {
             {/* --- LOGGED IN: status + user button --- */}
             {currentUser && (
               <>
-                {/* Sync indicator only */}
-                <div className="flex items-center gap-1 text-xs text-gray-500">
+                {/* Sync indicator: pulsing red dot when live+idle, or sync/check/error icons */}
+                <div className="relative flex items-center justify-center" style={{ width: 18, height: 18 }}>
+                  {/* Red pulsing dot — visible when live sync is ON and idle */}
                   <span
-                    className="transition-opacity duration-300"
-                    style={{ opacity: syncStatus === 'syncing' ? 1 : 0, position: 'absolute', pointerEvents: 'none' }}
+                    className="transition-opacity duration-300 absolute inset-0 flex items-center justify-center"
+                    style={{ opacity: liveSync && syncStatus === 'idle' ? 1 : 0, pointerEvents: 'none' }}
+                  >
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-60" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                    </span>
+                  </span>
+                  {/* Syncing spinner */}
+                  <span
+                    className="transition-opacity duration-300 absolute inset-0 flex items-center justify-center"
+                    style={{ opacity: syncStatus === 'syncing' ? 1 : 0, pointerEvents: 'none' }}
                   >
                     <RefreshCw size={13} className="animate-spin text-blue-500" />
                   </span>
+                  {/* Success checkmark */}
                   <span
-                    className="transition-opacity duration-300"
-                    style={{ opacity: syncStatus === 'success' ? 1 : 0, position: 'absolute', pointerEvents: 'none' }}
+                    className="transition-opacity duration-300 absolute inset-0 flex items-center justify-center"
+                    style={{ opacity: syncStatus === 'success' ? 1 : 0, pointerEvents: 'none' }}
                   >
                     <CheckCircle size={13} className="text-green-500" />
                   </span>
+                  {/* Error icon */}
                   <span
-                    className="transition-opacity duration-300"
-                    style={{ opacity: syncStatus === 'error' ? 1 : 0, position: 'absolute', pointerEvents: 'none' }}
+                    className="transition-opacity duration-300 absolute inset-0 flex items-center justify-center"
+                    style={{ opacity: syncStatus === 'error' ? 1 : 0, pointerEvents: 'none' }}
                   >
                     <AlertCircle size={13} className="text-red-500" />
                   </span>
-                  {/* Invisible spacer so the area doesn't collapse */}
-                  <span className="invisible"><RefreshCw size={13} /></span>
-                  {pendingChanges > 0 && (
-                    <span className="bg-yellow-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">{pendingChanges}</span>
-                  )}
                 </div>
 
                 {/* User menu button */}
@@ -483,14 +528,38 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                     <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
                       <p className="text-sm font-semibold text-gray-800 mb-3">{currentUser}</p>
                       <div className="space-y-1">
-                        <button
-                          onClick={() => { handleSync(); setShowUserMenu(false); }}
-                          disabled={isSyncing || !isOnline}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors"
+                        {/* Live sync row with toggle */}
+                        <div
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                          onMouseEnter={() => setLiveSyncHovered(true)}
+                          onMouseLeave={() => setLiveSyncHovered(false)}
+                          onClick={() => {
+                            if (!liveSync) {
+                              handleSync();
+                              setShowUserMenu(false);
+                            }
+                          }}
                         >
-                          <RefreshCw size={14} className={isSyncing ? 'animate-spin text-blue-500' : 'text-gray-400'} />
-                          Sincronitzar ara
-                        </button>
+                          {/* Icon: Live (Radio) when on, RefreshCw when off */}
+                          {liveSync ? (
+                            <Radio size={14} className="text-red-500" />
+                          ) : (
+                            <RefreshCw size={14} className={isSyncing ? 'animate-spin text-blue-500' : 'text-gray-400'} />
+                          )}
+                          {/* Text changes on hover when liveSync is ON */}
+                          <span className="flex-1">
+                            {liveSync && liveSyncHovered ? 'Sincronitzar ara' : liveSync ? 'Sync live' : 'Sincronitzar ara'}
+                          </span>
+                          {/* Toggle switch */}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggleLiveSync(); }}
+                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${liveSync ? 'bg-red-500' : 'bg-gray-300'}`}
+                            aria-pressed={liveSync}
+                            title={liveSync ? 'Desactivar sync live' : 'Activar sync live'}
+                          >
+                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${liveSync ? 'translate-x-[18px]' : 'translate-x-1'}`} />
+                          </button>
+                        </div>
                         <button
                           onClick={handleExport}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
