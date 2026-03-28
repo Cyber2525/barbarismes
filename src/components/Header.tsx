@@ -2,9 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload } from 'lucide-react';
 import { cloudSync } from '../lib/cloudSync';
 import { downloadCSI, readCSIFile, mergeCSIData, CSIData } from '../lib/csiExport';
+import { dispatchProgressUpdate } from '../utils/doneItems';
 
 interface HeaderProps {
   onProgressUpdate: (barbarismes: string[], dialectes: string[]) => void;
+}
+
+// Cloud progress for merge/replace dialog
+interface CloudProgress {
+  barbarismes: string[];
+  dialectes: string[];
 }
 
 export function Header({ onProgressUpdate }: HeaderProps) {
@@ -29,6 +36,15 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   // Import state
   const [pendingImport, setPendingImport] = useState<CSIData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Login merge/replace dialog state
+  const [pendingLoginEmail, setPendingLoginEmail] = useState<string | null>(null);
+  const [pendingCloudProgress, setPendingCloudProgress] = useState<CloudProgress | null>(null);
+
+  // Delete account confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [downloadedBackup, setDownloadedBackup] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -92,16 +108,47 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     try {
       const user = await cloudSync.getOrCreateUser(email);
       if (user) {
-        localStorage.setItem('fets_current_email', email);
-        setCurrentUser(email);
+        // Get cloud progress
+        const cloudProgress = await cloudSync.loadProgress(email);
+
+        // Get current local progress
+        const localBarbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
+        const localDialectes = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
+        const hasLocalProgress = localBarbarismes.length > 0 || localDialectes.length > 0;
+        const hasCloudProgress = cloudProgress && (cloudProgress.barbarismes.length > 0 || cloudProgress.dialectes.length > 0);
+
+        // If both have data, show merge/replace dialog
+        if (hasLocalProgress && hasCloudProgress) {
+          setPendingLoginEmail(email);
+          setPendingCloudProgress(cloudProgress);
+          setShowLoginForm(false);
+          setEmail('');
+          setIsSyncing(false);
+          setSyncStatus('idle');
+          return;
+        }
+
+        // If only cloud has data, use cloud
+        if (hasCloudProgress && cloudProgress) {
+          localStorage.setItem('fets_current_email', email);
+          setCurrentUser(email);
+          localStorage.setItem('doneBarbarismes', JSON.stringify(cloudProgress.barbarismes));
+          localStorage.setItem('doneDialectes', JSON.stringify(cloudProgress.dialectes));
+          onProgressUpdate(cloudProgress.barbarismes, cloudProgress.dialectes);
+          dispatchProgressUpdate();
+        } else {
+          // If only local has data or neither has data, save local to cloud
+          localStorage.setItem('fets_current_email', email);
+          setCurrentUser(email);
+          if (hasLocalProgress) {
+            await cloudSync.saveProgress(email, localBarbarismes, localDialectes);
+          }
+          onProgressUpdate(localBarbarismes, localDialectes);
+          dispatchProgressUpdate();
+        }
+
         setShowLoginForm(false);
         setEmail('');
-        const progress = await cloudSync.loadProgress(email);
-        if (progress) {
-          localStorage.setItem('doneBarbarismes', JSON.stringify(progress.barbarismes));
-          localStorage.setItem('doneDialectes', JSON.stringify(progress.dialectes));
-          onProgressUpdate(progress.barbarismes, progress.dialectes);
-        }
         setSyncStatus('success');
       } else {
         setSyncStatus('error');
@@ -114,12 +161,68 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     }
   };
 
+  // Handle login merge/replace confirmation
+  const handleLoginConfirm = async (mode: 'merge' | 'replace') => {
+    if (!pendingLoginEmail || !pendingCloudProgress) return;
+
+    setIsSyncing(true);
+    setSyncStatus('syncing');
+
+    try {
+      const localBarbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
+      const localDialectes = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
+
+      let finalBarbarismes: string[];
+      let finalDialectes: string[];
+
+      if (mode === 'merge') {
+        // Union of both
+        finalBarbarismes = Array.from(new Set([...localBarbarismes, ...pendingCloudProgress.barbarismes]));
+        finalDialectes = Array.from(new Set([...localDialectes, ...pendingCloudProgress.dialectes]));
+      } else {
+        // Replace with cloud data
+        finalBarbarismes = pendingCloudProgress.barbarismes;
+        finalDialectes = pendingCloudProgress.dialectes;
+      }
+
+      // Save to localStorage
+      localStorage.setItem('fets_current_email', pendingLoginEmail);
+      localStorage.setItem('doneBarbarismes', JSON.stringify(finalBarbarismes));
+      localStorage.setItem('doneDialectes', JSON.stringify(finalDialectes));
+
+      // Save merged/final to cloud
+      await cloudSync.saveProgress(pendingLoginEmail, finalBarbarismes, finalDialectes);
+
+      setCurrentUser(pendingLoginEmail);
+      onProgressUpdate(finalBarbarismes, finalDialectes);
+      dispatchProgressUpdate();
+      setSyncStatus('success');
+    } catch {
+      setSyncStatus('error');
+    } finally {
+      setPendingLoginEmail(null);
+      setPendingCloudProgress(null);
+      setIsSyncing(false);
+      setTimeout(() => setSyncStatus('idle'), 2000);
+    }
+  };
+
   const handleLogout = () => {
+    // Clear user session
     localStorage.removeItem('fets_current_email');
+
+    // Clear FETS progress from localStorage on logout
+    localStorage.removeItem('doneBarbarismes');
+    localStorage.removeItem('doneDialectes');
+
     setCurrentUser(null);
     setEmail('');
     setShowUserMenu(false);
     setSyncStatus('idle');
+
+    // Notify App to refresh the UI with empty progress
+    onProgressUpdate([], []);
+    dispatchProgressUpdate();
   };
 
   const handleSync = async () => {
@@ -136,6 +239,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
         localStorage.setItem('doneBarbarismes', JSON.stringify(progress.barbarismes));
         localStorage.setItem('doneDialectes', JSON.stringify(progress.dialectes));
         onProgressUpdate(progress.barbarismes, progress.dialectes);
+        dispatchProgressUpdate();
       }
       setSyncStatus('success');
       setPendingChanges(0);
@@ -164,7 +268,27 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     if (!file) return;
     const data = await readCSIFile(file);
     if (data) {
-      setPendingImport(data);
+      // Check if there's any existing local data
+      const existingBarbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
+      const existingDialectes = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
+      const hasExistingData = existingBarbarismes.length > 0 || existingDialectes.length > 0;
+      
+      // If no existing data, import directly without dialog
+      if (!hasExistingData) {
+        // Import directly
+        const newData = { barbarismes: data.barbarismes, dialectes: data.dialectes };
+        localStorage.setItem('doneBarbarismes', JSON.stringify(newData.barbarismes));
+        localStorage.setItem('doneDialectes', JSON.stringify(newData.dialectes));
+        
+        if (currentUser && isOnline) {
+          await cloudSync.saveProgress(currentUser, newData.barbarismes, newData.dialectes);
+        }
+        onProgressUpdate(newData.barbarismes, newData.dialectes);
+        dispatchProgressUpdate();
+      } else {
+        // Otherwise, show merge/replace dialog
+        setPendingImport(data);
+      }
     } else {
       alert('Error llegint el fitxer CSI');
     }
@@ -188,10 +312,52 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       await cloudSync.saveProgress(currentUser, newData.barbarismes, newData.dialectes);
     }
     onProgressUpdate(newData.barbarismes, newData.dialectes);
+    dispatchProgressUpdate();
     setPendingImport(null);
   };
 
   const displayName = currentUser ? currentUser.split('.')[0].toUpperCase() : null;
+
+  const handleDeleteAccount = async () => {
+    if (!currentUser) return;
+    if (deleteConfirmText !== 'ELIMINAR') return;
+    
+    setIsSyncing(true);
+    setSyncStatus('syncing');
+    try {
+      // Delete account from Supabase
+      await cloudSync.deleteAccount(currentUser);
+      
+      // Clear all local data
+      localStorage.removeItem('fets_current_email');
+      localStorage.removeItem('doneBarbarismes');
+      localStorage.removeItem('doneDialectes');
+      
+      setCurrentUser(null);
+      setShowUserMenu(false);
+      setShowDeleteConfirm(false);
+      setDeleteConfirmText('');
+      setDownloadedBackup(false);
+      setSyncStatus('success');
+      onProgressUpdate([], []);
+      dispatchProgressUpdate();
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setSyncStatus('error');
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncStatus('idle'), 2000);
+    }
+  };
+
+  const handleDownloadBackup = async () => {
+    try {
+      await handleExport();
+      setDownloadedBackup(true);
+    } catch (error) {
+      console.error('Error downloading backup:', error);
+    }
+  };
 
   return (
     <>
@@ -200,49 +366,67 @@ export function Header({ onProgressUpdate }: HeaderProps) {
           <h1 className="text-lg md:text-xl font-bold text-red-600">Català CSI</h1>
 
           <div className="flex items-center gap-3">
-            {/* --- NOT LOGGED IN: Login button --- */}
+            {/* --- NOT LOGGED IN: Import/Export + Login button --- */}
             {!currentUser && (
-              <div ref={loginRef} className="relative">
+              <>
+                {/* Guest import/export buttons */}
                 <button
-                  onClick={() => setShowLoginForm(v => !v)}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                  onClick={handleExport}
+                  className="flex items-center gap-1 px-2 py-2 text-gray-600 hover:bg-gray-200/50 rounded-lg transition-colors text-sm"
+                  title="Exportar (.csi)"
                 >
-                  <LogIn size={16} />
-                  Login
+                  <Download size={16} />
+                </button>
+                <button
+                  onClick={handleImportClick}
+                  className="flex items-center gap-1 px-2 py-2 text-gray-600 hover:bg-gray-200/50 rounded-lg transition-colors text-sm"
+                  title="Importar (.csi)"
+                >
+                  <Upload size={16} />
                 </button>
 
-                {showLoginForm && (
-                  <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
-                    <p className="text-sm font-semibold text-gray-800 mb-3">Iniciar sessió</p>
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Email CSI</label>
-                        <input
-                          type="text"
-                          value={email}
-                          onChange={(e) => {
-                            setEmail(e.target.value.toLowerCase());
-                            if (emailError) validateEmail(e.target.value.toLowerCase());
-                          }}
-                          onKeyDown={(e) => { if (e.key === 'Enter' && email && !isSyncing) handleLogin(); }}
-                          placeholder="12345678.santignasi@fje.edu"
-                          className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${emailError ? 'border-red-500' : 'border-gray-300'}`}
-                          autoFocus
-                        />
-                        {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
+                <div ref={loginRef} className="relative">
+                  <button
+                    onClick={() => setShowLoginForm(v => !v)}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                  >
+                    <LogIn size={16} />
+                    Login
+                  </button>
+
+                  {showLoginForm && (
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
+                      <p className="text-sm font-semibold text-gray-800 mb-3">Iniciar sessió</p>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Email CSI</label>
+                          <input
+                            type="text"
+                            value={email}
+                            onChange={(e) => {
+                              setEmail(e.target.value.toLowerCase());
+                              if (emailError) validateEmail(e.target.value.toLowerCase());
+                            }}
+                            onKeyDown={(e) => { if (e.key === 'Enter' && email && !isSyncing) handleLogin(); }}
+                            placeholder="12345678.santignasi@fje.edu"
+                            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${emailError ? 'border-red-500' : 'border-gray-300'}`}
+                            autoFocus
+                          />
+                          {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
+                        </div>
+                        <button
+                          onClick={handleLogin}
+                          disabled={isSyncing || !email}
+                          className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors text-sm"
+                        >
+                          {isSyncing ? <RefreshCw size={15} className="animate-spin" /> : <LogIn size={15} />}
+                          Entrar
+                        </button>
                       </div>
-                      <button
-                        onClick={handleLogin}
-                        disabled={isSyncing || !email}
-                        className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors text-sm"
-                      >
-                        {isSyncing ? <RefreshCw size={15} className="animate-spin" /> : <LogIn size={15} />}
-                        Entrar
-                      </button>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </>
             )}
 
             {/* --- LOGGED IN: status + user button --- */}
@@ -296,6 +480,14 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                         </button>
                         <div className="my-2 border-t border-gray-100" />
                         <button
+                          onClick={() => { setShowDeleteConfirm(true); setShowUserMenu(false); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                        >
+                          <AlertCircle size={14} className="text-orange-400" />
+                          Eliminar compte
+                        </button>
+                        <div className="my-2 border-t border-gray-100" />
+                        <button
                           onClick={handleLogout}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
@@ -342,6 +534,107 @@ export function Header({ onProgressUpdate }: HeaderProps) {
               <button
                 onClick={() => setPendingImport(null)}
                 className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 text-sm transition-colors"
+              >
+                Cancel·lar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Login merge/replace dialog */}
+      {pendingLoginEmail && pendingCloudProgress && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+            <h3 className="text-base font-semibold text-gray-900 mb-1">Progrés existent al compte</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              El teu compte <strong>{pendingLoginEmail.split('.')[0].toUpperCase()}</strong> ja té progrés guardat ({pendingCloudProgress.barbarismes.length} barbarismes, {pendingCloudProgress.dialectes.length} dialectes). Tens progrés local també. Què vols fer?
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => handleLoginConfirm('merge')}
+                disabled={isSyncing}
+                className="w-full bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm transition-colors"
+              >
+                {isSyncing ? <RefreshCw size={15} className="animate-spin" /> : null}
+                Fusionar (conserva tot)
+              </button>
+              <button
+                onClick={() => handleLoginConfirm('replace')}
+                disabled={isSyncing}
+                className="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm transition-colors"
+              >
+                Usar només el del núvol
+              </button>
+              <button
+                onClick={() => { setPendingLoginEmail(null); setPendingCloudProgress(null); }}
+                disabled={isSyncing}
+                className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 disabled:opacity-50 text-sm transition-colors"
+              >
+                Cancel·lar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete account confirmation dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+            <h3 className="text-base font-semibold text-red-600 mb-2">Eliminar compte i dades</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Aquesta acció eliminarà permanentment el teu compte <strong>{currentUser}</strong> i totes les seves dades. Això és irreversible.
+            </p>
+            
+            <div className="space-y-3">
+              {/* Download backup button */}
+              <button
+                onClick={handleDownloadBackup}
+                disabled={downloadedBackup}
+                className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm transition-colors"
+              >
+                {downloadedBackup ? (
+                  <>
+                    <CheckCircle size={15} />
+                    Còpia descarregada
+                  </>
+                ) : (
+                  <>
+                    <Download size={15} />
+                    Baixar còpia de seguretat
+                  </>
+                )}
+              </button>
+
+              {/* Confirmation text field */}
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value.toUpperCase())}
+                placeholder="Escriu &quot;ELIMINAR&quot; per continuar"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+
+              {/* Delete button - only enabled if text matches */}
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isSyncing || deleteConfirmText !== 'ELIMINAR'}
+                className="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm transition-colors"
+              >
+                {isSyncing ? <RefreshCw size={15} className="animate-spin" /> : <AlertCircle size={15} />}
+                Eliminar permanentment
+              </button>
+
+              {/* Cancel button */}
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteConfirmText('');
+                  setDownloadedBackup(false);
+                }}
+                disabled={isSyncing}
+                className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 disabled:opacity-50 text-sm transition-colors"
               >
                 Cancel·lar
               </button>

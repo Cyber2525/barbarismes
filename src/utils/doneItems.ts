@@ -3,6 +3,14 @@ import { cloudSync } from '../lib/cloudSync';
 const DONE_ITEMS_KEY = 'doneBarbarismes';
 const DONE_DIALECTES_KEY = 'doneDialectes';
 
+// Custom event for progress updates - components can listen to this
+export const PROGRESS_UPDATED_EVENT = 'fets-progress-updated';
+
+// Dispatch event to notify components that progress changed
+export function dispatchProgressUpdate() {
+  window.dispatchEvent(new CustomEvent(PROGRESS_UPDATED_EVENT));
+}
+
 // Get current user email
 const getCurrentEmail = (): string | null => {
   return localStorage.getItem('fets_current_email');
@@ -11,18 +19,14 @@ const getCurrentEmail = (): string | null => {
 // Sync to cloud in background
 const syncToCloud = async () => {
   const email = getCurrentEmail();
-  console.log('[v0] syncToCloud called, email:', email);
   if (!email) {
-    console.log('[v0] No email found, skipping sync');
     return;
   }
   
   const barbarismes = JSON.parse(localStorage.getItem(DONE_ITEMS_KEY) || '[]');
   const dialectes = JSON.parse(localStorage.getItem(DONE_DIALECTES_KEY) || '[]');
   
-  console.log('[v0] Syncing to cloud:', barbarismes.length, 'barbarismes,', dialectes.length, 'dialectes');
-  const result = await cloudSync.saveProgress(email, barbarismes, dialectes);
-  console.log('[v0] Sync result:', result);
+  await cloudSync.saveProgress(email, barbarismes, dialectes);
 };
 
 // Debounced sync to avoid too many API calls
@@ -55,11 +59,13 @@ export function getDoneDialectes(): Set<string> {
 export function saveDoneItems(done: Set<string>): void {
   localStorage.setItem(DONE_ITEMS_KEY, JSON.stringify(Array.from(done)));
   debouncedSync();
+  dispatchProgressUpdate();
 }
 
 export function saveDoneDialectes(done: Set<string>): void {
   localStorage.setItem(DONE_DIALECTES_KEY, JSON.stringify(Array.from(done)));
   debouncedSync();
+  dispatchProgressUpdate();
 }
 
 export function markAsDone(barbarism: string): void {

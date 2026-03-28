@@ -70,12 +70,8 @@ export const cloudSync = {
 
   // Get or create user
   async getOrCreateUser(email: string): Promise<UserProgress | null> {
-    console.log('[v0] getOrCreateUser called with:', email);
-    console.log('[v0] Supabase configured:', isSupabaseConfigured());
-    
     // If Supabase not configured, work in offline mode
     if (!isSupabaseConfigured() || !supabase) {
-      console.log('[v0] Working in offline mode (no Supabase)');
       // Return a local user object for offline mode
       return {
         email,
@@ -88,15 +84,12 @@ export const cloudSync = {
     }
     
     try {
-      console.log('[v0] Checking if user exists in Supabase...');
       // Check if user exists
       const { data: existing, error: fetchError } = await supabase
         .from('users_progress')
         .select('*')
         .eq('email', email)
         .single();
-
-      console.log('[v0] Fetch result:', existing, 'Error:', fetchError);
 
       if (existing && !fetchError) {
         return {
@@ -110,7 +103,6 @@ export const cloudSync = {
       }
 
       // Create new user
-      console.log('[v0] User not found, creating new user...');
       const displayName = email.split('.')[0].toUpperCase();
       const { data: newUser, error: insertError } = await supabase
         .from('users_progress')
@@ -126,8 +118,6 @@ export const cloudSync = {
         .select()
         .single();
 
-      console.log('[v0] Insert result:', newUser, 'Error:', insertError);
-
       if (insertError) throw insertError;
 
       return {
@@ -139,7 +129,7 @@ export const cloudSync = {
         updated_at: newUser.updated_at,
       };
     } catch (error) {
-      console.error('[v0] Error getting/creating user:', error);
+      console.error('Error getting/creating user:', error);
       // Fallback to offline mode
       return {
         email,
@@ -176,7 +166,7 @@ export const cloudSync = {
         dialectes: data.dialect_progress || [],
       };
     } catch (error) {
-      console.error('[v0] Error loading progress:', error);
+      console.error('Error loading progress:', error);
       // Fallback to local
       return {
         barbarismes: JSON.parse(localStorage.getItem('doneBarbarismes') || '[]'),
@@ -187,10 +177,7 @@ export const cloudSync = {
 
   // Save progress to cloud
   async saveProgress(email: string, barbarismes: string[], dialectes: string[]): Promise<boolean> {
-    console.log('[v0] saveProgress called:', email, 'barbarismes:', barbarismes.length, 'dialectes:', dialectes.length);
-    
     if (!isSupabaseConfigured() || !supabase) {
-      console.log('[v0] Supabase not configured, skipping save');
       return false;
     }
 
@@ -211,14 +198,12 @@ export const cloudSync = {
         });
 
       if (error) {
-        console.error('[v0] Error saving progress:', error);
         throw error;
       }
       
-      console.log('[v0] Progress saved successfully');
       return true;
     } catch (error) {
-      console.error('[v0] Error saving progress:', error);
+      console.error('Error saving progress:', error);
       return false;
     }
   },
@@ -319,6 +304,29 @@ export const cloudSync = {
   // Get pending changes count
   getPendingChangesCount(email: string): number {
     return getLocalQueue().filter(item => item.user_email === email && !item.synced).length;
+  },
+
+  // Delete account and all data
+  async deleteAccount(email: string): Promise<boolean> {
+    if (!isSupabaseConfigured() || !supabase) {
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('users_progress')
+        .delete()
+        .eq('email', email);
+
+      if (error) {
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      return false;
+    }
   },
 };
 
