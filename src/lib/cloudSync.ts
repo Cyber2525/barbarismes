@@ -131,18 +131,19 @@ export const cloudSync = {
       throw new Error('SUPABASE_NOT_CONFIGURED');
     }
 
-    // Check if user exists
-    const { data: existing, error: fetchError } = await supabase
+    // Check if user exists - use limit(1) instead of single() to avoid errors on empty results
+    const { data: existingUsers, error: fetchError } = await supabase
       .from('users_progress')
       .select('*')
       .eq('email', email)
-      .single();
+      .limit(1);
 
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      // PGRST116 = row not found — anything else is a real error
+    if (fetchError) {
+      console.error('[v0] Supabase fetch error:', fetchError);
       throw new Error('SERVER_ERROR');
     }
 
+    const existing = existingUsers && existingUsers.length > 0 ? existingUsers[0] : null;
     if (existing) {
       return {
         email: existing.email,
