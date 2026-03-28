@@ -16,24 +16,17 @@ const getCurrentEmail = (): string | null => {
   return localStorage.getItem('fets_current_email');
 };
 
-// Sync to cloud in background
-const syncToCloud = async () => {
-  const email = getCurrentEmail();
-  if (!email) {
-    return;
-  }
-  
-  const barbarismes = JSON.parse(localStorage.getItem(DONE_ITEMS_KEY) || '[]');
-  const dialectes = JSON.parse(localStorage.getItem(DONE_DIALECTES_KEY) || '[]');
-  
-  await cloudSync.saveProgress(email, barbarismes, dialectes);
-};
-
-// Debounced sync to avoid too many API calls
+// Push current state to cloud (debounced) — only active changes while logged in
 let syncTimeout: ReturnType<typeof setTimeout> | null = null;
-const debouncedSync = () => {
+const debouncedPush = () => {
+  const email = getCurrentEmail();
+  if (!email) return; // not logged in, no push
   if (syncTimeout) clearTimeout(syncTimeout);
-  syncTimeout = setTimeout(syncToCloud, 1000);
+  syncTimeout = setTimeout(async () => {
+    const barbarismes = JSON.parse(localStorage.getItem(DONE_ITEMS_KEY) || '[]');
+    const dialectes = JSON.parse(localStorage.getItem(DONE_DIALECTES_KEY) || '[]');
+    await cloudSync.pushProgress(email, barbarismes, dialectes);
+  }, 800);
 };
 
 export function getDoneItems(): Set<string> {
@@ -58,13 +51,13 @@ export function getDoneDialectes(): Set<string> {
 
 export function saveDoneItems(done: Set<string>): void {
   localStorage.setItem(DONE_ITEMS_KEY, JSON.stringify(Array.from(done)));
-  debouncedSync();
+  debouncedPush();
   dispatchProgressUpdate();
 }
 
 export function saveDoneDialectes(done: Set<string>): void {
   localStorage.setItem(DONE_DIALECTES_KEY, JSON.stringify(Array.from(done)));
-  debouncedSync();
+  debouncedPush();
   dispatchProgressUpdate();
 }
 

@@ -37,9 +37,12 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [pendingImport, setPendingImport] = useState<CSIData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Login merge/replace dialog state
+  // Login merge/replace dialog state — kept only for file import
   const [pendingLoginEmail, setPendingLoginEmail] = useState<string | null>(null);
   const [pendingCloudProgress, setPendingCloudProgress] = useState<CloudProgress | null>(null);
+
+  // Login error message
+  const [loginError, setLoginError] = useState<string | null>(null);
 
   // Delete account confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
