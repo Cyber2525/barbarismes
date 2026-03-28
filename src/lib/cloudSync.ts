@@ -305,6 +305,29 @@ export const cloudSync = {
   getPendingChangesCount(email: string): number {
     return getLocalQueue().filter(item => item.user_email === email && !item.synced).length;
   },
+
+  // Delete account and all data
+  async deleteAccount(email: string): Promise<boolean> {
+    if (!isSupabaseConfigured() || !supabase) {
+      return false;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('users_progress')
+        .delete()
+        .eq('email', email);
+
+      if (error) {
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      return false;
+    }
+  },
 };
 
 // Listen for online/offline events

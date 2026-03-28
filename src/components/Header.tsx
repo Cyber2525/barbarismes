@@ -41,6 +41,9 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [pendingLoginEmail, setPendingLoginEmail] = useState<string | null>(null);
   const [pendingCloudProgress, setPendingCloudProgress] = useState<CloudProgress | null>(null);
 
+  // Delete account confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -293,6 +296,34 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
   const displayName = currentUser ? currentUser.split('.')[0].toUpperCase() : null;
 
+  const handleDeleteAccount = async () => {
+    if (!currentUser) return;
+    setIsSyncing(true);
+    setSyncStatus('syncing');
+    try {
+      // Delete account from Supabase
+      await cloudSync.deleteAccount(currentUser);
+      
+      // Clear all local data
+      localStorage.removeItem('fets_current_email');
+      localStorage.removeItem('doneBarbarismes');
+      localStorage.removeItem('doneDialectes');
+      
+      setCurrentUser(null);
+      setShowUserMenu(false);
+      setShowDeleteConfirm(false);
+      setSyncStatus('success');
+      onProgressUpdate([], []);
+      dispatchProgressUpdate();
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setSyncStatus('error');
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncStatus('idle'), 2000);
+    }
+  };
+
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-40 bg-white/70 backdrop-blur-md border-b border-gray-200/60">
@@ -329,7 +360,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                   </button>
 
                   {showLoginForm && (
-                    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-white/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
                       <p className="text-sm font-semibold text-gray-800 mb-3">Iniciar sessió</p>
                       <div className="space-y-3">
                         <div>
@@ -414,6 +445,14 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                         </button>
                         <div className="my-2 border-t border-gray-100" />
                         <button
+                          onClick={() => { setShowDeleteConfirm(true); setShowUserMenu(false); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                        >
+                          <AlertCircle size={14} className="text-orange-400" />
+                          Eliminar compte
+                        </button>
+                        <div className="my-2 border-t border-gray-100" />
+                        <button
                           onClick={handleLogout}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
@@ -494,6 +533,35 @@ export function Header({ onProgressUpdate }: HeaderProps) {
               </button>
               <button
                 onClick={() => { setPendingLoginEmail(null); setPendingCloudProgress(null); }}
+                disabled={isSyncing}
+                className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 disabled:opacity-50 text-sm transition-colors"
+              >
+                Cancel·lar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete account confirmation dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+            <h3 className="text-base font-semibold text-red-600 mb-2">Eliminar compte i dades</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Aquesta acció eliminarà permanentment el teu compte <strong>{currentUser}</strong> i tots els dats de progres de Supabase. No es pot desfer.
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={handleDeleteAccount}
+                disabled={isSyncing}
+                className="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm transition-colors"
+              >
+                {isSyncing ? <RefreshCw size={15} className="animate-spin" /> : <AlertCircle size={15} />}
+                Eliminar permanentment
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
                 disabled={isSyncing}
                 className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 disabled:opacity-50 text-sm transition-colors"
               >
