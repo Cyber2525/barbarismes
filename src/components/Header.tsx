@@ -103,6 +103,9 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       setPendingChanges(0);
     }
   }, [currentUser, syncStatus]);
+
+  // Close login form on outside click
+  useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (loginRef.current && !loginRef.current.contains(e.target as Node)) {
         setShowLoginForm(false);
