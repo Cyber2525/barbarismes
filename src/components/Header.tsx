@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload } from 'lucide-react';
-import { cloudSync } from '../lib/cloudSync';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload, Radio } from 'lucide-react';
+import { cloudSync, subscribeRealtime } from '../lib/cloudSync';
 import { downloadCSI, readCSIFile, mergeCSIData, CSIData } from '../lib/csiExport';
 import { dispatchProgressUpdate } from '../utils/doneItems';
 
@@ -22,6 +22,10 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [pendingChanges, setPendingChanges] = useState(0);
+  // Live sync (Realtime) toggle
+  const [liveSync, setLiveSync] = useState(false);
+  const realtimeUnsubRef = useRef<(() => void) | null>(null);
+  const prevOnlineRef = useRef(navigator.onLine);
 
   // Login form state
   const [showLoginForm, setShowLoginForm] = useState(false);
@@ -48,8 +52,14 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [downloadedBackup, setDownloadedBackup] = useState(false);
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => {
+      setIsOnline(true);
+      prevOnlineRef.current = true;
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      prevOnlineRef.current = false;
+    };
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
@@ -58,15 +68,41 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     };
   }, []);
 
+  // Auto-sync on mount if logged in + online, and when reconnecting
+  useEffect(() => {
+    if (currentUser && isOnline) {
+      handleSync();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, isOnline]);
+
+  // Manage Realtime subscription when liveSync toggles
+  useEffect(() => {
+    // Clean up previous subscription
+    if (realtimeUnsubRef.current) {
+      realtimeUnsubRef.current();
+      realtimeUnsubRef.current = null;
+    }
+    if (liveSync && currentUser && isOnline) {
+      realtimeUnsubRef.current = subscribeRealtime(currentUser, () => {
+        // Remote change detected — pull latest from cloud
+        handleSync();
+      });
+    }
+    return () => {
+      if (realtimeUnsubRef.current) {
+        realtimeUnsubRef.current();
+        realtimeUnsubRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveSync, currentUser, isOnline]);
+
   useEffect(() => {
     if (currentUser) {
-      // Pending changes are tracked visually via syncStatus only
       setPendingChanges(0);
     }
   }, [currentUser, syncStatus]);
-
-  // Close login form on outside click
-  useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (loginRef.current && !loginRef.current.contains(e.target as Node)) {
         setShowLoginForm(false);
@@ -87,12 +123,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     return () => document.removeEventListener('mousedown', handler);
   }, [showUserMenu]);
 
-  // Auto-sync when coming online
-  useEffect(() => {
-    if (isOnline && currentUser && pendingChanges > 0) {
-      handleSync();
-    }
-  }, [isOnline]);
+  // (auto-sync handled via the [currentUser, isOnline] effect above)
 
   const validateEmail = (value: string): boolean => {
     if (!cloudSync.validateEmail(value)) {
@@ -233,8 +264,8 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     dispatchProgressUpdate();
   };
 
-  const handleSync = async () => {
-    if (!currentUser || !isOnline) return;
+  const handleSync = useCallback(async () => {
+    if (!currentUser || !isOnline || isSyncing) return;
     setIsSyncing(true);
     setSyncStatus('syncing');
     try {
@@ -247,9 +278,10 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       setSyncStatus('error');
     } finally {
       setIsSyncing(false);
-      setTimeout(() => setSyncStatus('idle'), 2000);
+      setTimeout(() => setSyncStatus('idle'), 2500);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser, isOnline, isSyncing]);
 
   const handleExport = () => {
     const barbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
@@ -434,14 +466,35 @@ export function Header({ onProgressUpdate }: HeaderProps) {
             {/* --- LOGGED IN: status + user button --- */}
             {currentUser && (
               <>
-                {/* Sync indicator only */}
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  {syncStatus === 'syncing' && <RefreshCw size={13} className="animate-spin text-blue-500" />}
-                  {syncStatus === 'success' && <CheckCircle size={13} className="text-green-500" />}
-                  {syncStatus === 'error' && <AlertCircle size={13} className="text-red-500" />}
-                  {pendingChanges > 0 && (
-                    <span className="bg-yellow-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">{pendingChanges}</span>
-                  )}
+                {/* Sync status icon — fades in/out smoothly */}
+                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  {/* Live dot (realtime on) */}
+                  <span
+                    className={`transition-opacity duration-500 ${liveSync ? 'opacity-100' : 'opacity-0 pointer-events-none absolute'}`}
+                  >
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                    </span>
+                  </span>
+                  {/* Syncing spinner */}
+                  <span
+                    className={`transition-opacity duration-500 ${!liveSync && syncStatus === 'syncing' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute'}`}
+                  >
+                    <RefreshCw size={13} className="animate-spin text-blue-500" />
+                  </span>
+                  {/* Success tick */}
+                  <span
+                    className={`transition-opacity duration-500 ${!liveSync && syncStatus === 'success' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute'}`}
+                  >
+                    <CheckCircle size={13} className="text-green-500" />
+                  </span>
+                  {/* Error */}
+                  <span
+                    className={`transition-opacity duration-500 ${!liveSync && syncStatus === 'error' ? 'opacity-100' : 'opacity-0 pointer-events-none absolute'}`}
+                  >
+                    <AlertCircle size={13} className="text-red-500" />
+                  </span>
                 </div>
 
                 {/* User menu button */}
@@ -458,13 +511,19 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                     <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
                       <p className="text-sm font-semibold text-gray-800 mb-3">{currentUser}</p>
                       <div className="space-y-1">
+                        {/* Live sync toggle */}
                         <button
-                          onClick={() => { handleSync(); setShowUserMenu(false); }}
-                          disabled={isSyncing || !isOnline}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors"
+                          onClick={() => setLiveSync(v => !v)}
+                          disabled={!isOnline}
+                          className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors"
                         >
-                          <RefreshCw size={14} className={isSyncing ? 'animate-spin text-blue-500' : 'text-gray-400'} />
-                          Sincronitzar ara
+                          <div className="flex items-center gap-2">
+                            <Radio size={14} className={liveSync ? 'text-red-500' : 'text-gray-400'} />
+                            Sincronització en directe
+                          </div>
+                          <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${liveSync ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                            {liveSync ? 'ON' : 'OFF'}
+                          </span>
                         </button>
                         <button
                           onClick={handleExport}
