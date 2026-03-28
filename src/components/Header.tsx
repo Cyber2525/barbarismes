@@ -571,11 +571,11 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                             onClick={(e) => { e.stopPropagation(); toggleLiveSync(); }}
                           >
                             <button
-                              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${liveSync ? 'bg-red-500' : 'bg-gray-300'}`}
+                              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none !scale-100 hover:!scale-100 active:!scale-100 ${liveSync ? 'bg-red-500' : 'bg-gray-300'}`}
                               aria-pressed={liveSync}
                               tabIndex={-1}
                             >
-                              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${liveSync ? 'translate-x-[19px]' : 'translate-x-[2px]'}`} />
+                              <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200 ${liveSync ? 'translate-x-5' : 'translate-x-[2px]'}`} />
                             </button>
                           </div>
                         </div>
