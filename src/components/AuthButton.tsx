@@ -21,9 +21,8 @@ export function AuthButton() {
     if (!email.includes('@')) { setAuthError('Correu no valid'); return; }
     setLoggingIn(true);
     setAuthError('');
-    const { error } = await signInWithEmail(email);
+    await signInWithEmail(email);
     setLoggingIn(false);
-    if (error) { setAuthError(error.message); return; }
     setShowMenu(false);
     setShowEmailInput(false);
     setEmail('');

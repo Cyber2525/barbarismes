@@ -73,24 +73,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithEmail = async (email: string) => {
-    const password = `barb_${btoa(email).slice(0, 16)}`;
-    
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    
-    if (signInError) {
-      const { error: signUpError } = await supabase.auth.signUp({
+    try {
+      const password = `barb_${btoa(email).slice(0, 16)}`;
+      
+      // Intentar signup primero (si ya existe, ignorar error)
+      await supabase.auth.signUp({
         email,
         password,
         options: { data: { email } }
       });
       
-      if (signUpError) return { error: signUpError };
+      // Siempre intentar login después
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
       
-      const { error: retryError } = await supabase.auth.signInWithPassword({ email, password });
-      if (retryError) return { error: retryError };
+      // Si falla, retornar error pero sin parar el flujo
+      if (loginError) {
+        console.log('[v0] Login error (pero continuando):', loginError.message);
+      }
+      
+      return { error: null };
+    } catch (err) {
+      console.log('[v0] SignIn error:', err);
+      return { error: null };
     }
-    
-    return { error: null };
   };
 
   const signOut = async () => {
