@@ -94,6 +94,13 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     }
   }, [isOnline]);
 
+  // Auto-sync on page init if user is logged in and online
+  useEffect(() => {
+    if (currentUser && isOnline && syncStatus === 'idle') {
+      handleSync();
+    }
+  }, []);
+
   const validateEmail = (value: string): boolean => {
     if (!cloudSync.validateEmail(value)) {
       setEmailError('Format: XXXXXXXX.santignasi@fje.edu (max 8 chars)');
