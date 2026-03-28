@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Wifi, WifiOff, Download, Upload } from 'lucide-react';
+import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload } from 'lucide-react';
 import { cloudSync } from '../lib/cloudSync';
 import { downloadCSI, readCSIFile, mergeCSIData, CSIData } from '../lib/csiExport';
 
@@ -195,9 +195,9 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 shadow-sm">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg md:text-xl font-bold text-red-800">Català CSI</h1>
+      <header className="fixed top-0 left-0 right-0 z-40 bg-white/70 backdrop-blur-md border-b border-gray-200/60 shadow-sm">
+        <div className="px-4 py-3 flex items-center justify-between">
+          <h1 className="text-lg md:text-xl font-bold text-red-700">Català CSI</h1>
 
           <div className="flex items-center gap-3">
             {/* --- NOT LOGGED IN: Login button --- */}
