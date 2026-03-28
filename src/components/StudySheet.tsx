@@ -3,7 +3,7 @@ import { quizData } from '../data/quizData';
 import { AlignJustify, ArrowDownAZ, ArrowDownZA, ArrowUpDown, Book, BookOpen, CheckSquare, ChevronDown, ChevronUp, FileWarning, MessageSquareQuote, RefreshCw, Search, SlidersHorizontal, Square, Tags, X } from 'lucide-react';
 import { QuizMode } from '../types/quiz';
 import { scrollToTop } from '../utils/scrollHelper';
-import { getDoneItems, toggleDone } from '../utils/doneItems';
+import { getDoneItems, toggleDone, PROGRESS_UPDATED_EVENT } from '../utils/doneItems';
 
 // Helper function to remove accents from a character
 function removeAccents(str: string): string {
@@ -36,9 +36,16 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
     localStorage.setItem('studySheetSort', sortBy);
   }, [sortBy]);
 
-  // Refresh done items from localStorage (in case they changed from quiz)
+  // Refresh done items from localStorage (in case they changed from quiz or cloud sync)
   useEffect(() => {
     setDoneItems(getDoneItems());
+    
+    // Listen for progress updates from cloud sync/import
+    const handleProgressUpdate = () => {
+      setDoneItems(getDoneItems());
+    };
+    window.addEventListener(PROGRESS_UPDATED_EVENT, handleProgressUpdate);
+    return () => window.removeEventListener(PROGRESS_UPDATED_EVENT, handleProgressUpdate);
   }, []);
 
   const handleToggleDone = useCallback((barbarism: string, e: React.MouseEvent) => {
