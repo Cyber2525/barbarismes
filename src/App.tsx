@@ -12,7 +12,6 @@ import { StudySheet } from './components/StudySheet';
 import { DialectStudySheet } from './components/DialectStudySheet';
 import { DialectQuiz } from './components/DialectQuiz';
 import { OfflineButton } from './components/OfflineButton';
-import { CloudSyncPanel } from './components/CloudSyncPanel';
 import { Header } from './components/Header';
 import { BookOpen, Globe, Languages, Pencil } from 'lucide-react';
 
@@ -425,10 +424,6 @@ export function App() {
           <p className="mt-4 text-sm text-red-400 text-left md:text-center">Català CSI - Por Víctor De Nadal - Colegio San Ignacio (CSI) Barcelona</p>
         </footer>
       </div>
-
-      {/* Cloud Sync Panel */}
-      <CloudSyncPanel onProgressUpdate={handleProgressUpdate} />
-    </div>
   );
 }
 
