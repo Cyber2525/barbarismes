@@ -14,12 +14,15 @@ import { DialectQuiz } from './components/DialectQuiz';
 import { OfflineButton } from './components/OfflineButton';
 import { Header } from './components/Header';
 import { BookOpen, Globe, Languages, Pencil } from 'lucide-react';
+import { cloudSync, subscribeToUserChanges } from './lib/cloudSync';
+import { dispatchProgressUpdate } from './utils/doneItems';
 
 // Default quiz size
 const DEFAULT_QUIZ_SIZE = 20;
 
 export function App() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const realtimeUnsubscribeRef = useRef<{ unsubscribe: () => void } | null>(null);
 
   // Called by Header when cloud progress is loaded — bumps key to re-read localStorage
   const handleProgressUpdate = (_barbarismes: string[], _dialectes: string[]) => {
@@ -85,7 +88,54 @@ export function App() {
     setTimeout(() => {
       startNewQuiz();
     }, 800);
+
+    // Auto-sync on mount if logged in + online
+    const autoSyncOnMount = async () => {
+      const email = localStorage.getItem('fets_current_email');
+      if (email && navigator.onLine) {
+        try {
+          await cloudSync.sync(email);
+          dispatchProgressUpdate();
+          setRefreshKey(k => k + 1);
+        } catch {
+          // Fail silently — sync is not critical on mount
+        }
+      }
+    };
+
+    // Small delay to let Header finish mounting and setting up
+    const autoSyncTimer = setTimeout(autoSyncOnMount, 1000);
+    return () => clearTimeout(autoSyncTimer);
   }, []);
+
+  // Setup Realtime listener for another device syncing
+  useEffect(() => {
+    const email = localStorage.getItem('fets_current_email');
+    if (email && navigator.onLine) {
+      // Unsubscribe from previous listener if exists
+      if (realtimeUnsubscribeRef.current) {
+        realtimeUnsubscribeRef.current.unsubscribe();
+      }
+
+      // Subscribe to changes from other devices
+      realtimeUnsubscribeRef.current = subscribeToUserChanges(email, async () => {
+        // Another device synced — auto-sync this device
+        try {
+          await cloudSync.sync(email);
+          dispatchProgressUpdate();
+          setRefreshKey(k => k + 1);
+        } catch {
+          // Fail silently
+        }
+      });
+    }
+
+    return () => {
+      if (realtimeUnsubscribeRef.current) {
+        realtimeUnsubscribeRef.current.unsubscribe();
+      }
+    };
+  }, [refreshKey]); // Re-setup when user logs in/out or progress changes
 
   // Re-start quiz when cloud progress is loaded after login
   useEffect(() => {

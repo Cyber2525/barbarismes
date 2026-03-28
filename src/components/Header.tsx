@@ -434,13 +434,16 @@ export function Header({ onProgressUpdate }: HeaderProps) {
             {/* --- LOGGED IN: status + user button --- */}
             {currentUser && (
               <>
-                {/* Sync indicator only */}
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  {syncStatus === 'syncing' && <RefreshCw size={13} className="animate-spin text-blue-500" />}
-                  {syncStatus === 'success' && <CheckCircle size={13} className="text-green-500" />}
-                  {syncStatus === 'error' && <AlertCircle size={13} className="text-red-500" />}
-                  {pendingChanges > 0 && (
-                    <span className="bg-yellow-500 text-white text-[10px] rounded-full px-1.5 py-0.5 leading-none">{pendingChanges}</span>
+                {/* Sync indicator with fade animation */}
+                <div className="flex items-center">
+                  {syncStatus === 'syncing' && (
+                    <RefreshCw size={16} className="animate-spin text-blue-500 transition-opacity duration-300" />
+                  )}
+                  {syncStatus === 'success' && (
+                    <CheckCircle size={16} className="text-green-500 animate-fadeOut transition-opacity duration-500" />
+                  )}
+                  {syncStatus === 'error' && (
+                    <AlertCircle size={16} className="text-red-500 animate-fadeOut transition-opacity duration-500" />
                   )}
                 </div>
 
@@ -458,14 +461,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                     <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
                       <p className="text-sm font-semibold text-gray-800 mb-3">{currentUser}</p>
                       <div className="space-y-1">
-                        <button
-                          onClick={() => { handleSync(); setShowUserMenu(false); }}
-                          disabled={isSyncing || !isOnline}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-colors"
-                        >
-                          <RefreshCw size={14} className={isSyncing ? 'animate-spin text-blue-500' : 'text-gray-400'} />
-                          Sincronitzar ara
-                        </button>
                         <button
                           onClick={handleExport}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"

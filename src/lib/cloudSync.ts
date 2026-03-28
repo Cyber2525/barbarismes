@@ -293,12 +293,44 @@ export const cloudSync = {
   },
 };
 
+// Subscribe to realtime changes for this user — notifies when another device syncs
+export function subscribeToUserChanges(
+  email: string,
+  onChangeDetected: () => void,
+): { unsubscribe: () => void } {
+  if (!isSupabaseConfigured() || !supabase) {
+    return { unsubscribe: () => {} };
+  }
+
+  const channel = supabase
+    .channel(`user-${email}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'users_progress',
+        filter: `email=eq.${email}`,
+      },
+      () => {
+        onChangeDetected();
+      }
+    )
+    .subscribe();
+
+  return {
+    unsubscribe: () => {
+      channel.unsubscribe();
+    },
+  };
+}
+
 // Auto-sync when coming back online
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     const email = localStorage.getItem('fets_current_email');
     if (email) {
-      cloudSync.pushChange(email).catch(() => {});
+      cloudSync.sync(email).catch(() => {});
     }
   });
 }
