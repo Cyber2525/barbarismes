@@ -261,16 +261,15 @@ button:focus-visible {
   height: 100%;
 }
 
-/* Fade out animation for success/error icons */
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-.animate-fadeOut {
-  animation: fadeOut 0.5s ease-in-out 2s forwards;
+/* Modal dialogs */
+.modal-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem;
 }
