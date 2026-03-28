@@ -1,39 +1,27 @@
-import { cloudSync } from '../lib/cloudSync';
+import { cloudSync, recordLocalChange } from '../lib/cloudSync';
 
 const DONE_ITEMS_KEY = 'doneBarbarismes';
 const DONE_DIALECTES_KEY = 'doneDialectes';
 
-// Custom event for progress updates - components can listen to this
+// Custom event so components re-render on progress change
 export const PROGRESS_UPDATED_EVENT = 'fets-progress-updated';
 
-// Dispatch event to notify components that progress changed
 export function dispatchProgressUpdate() {
   window.dispatchEvent(new CustomEvent(PROGRESS_UPDATED_EVENT));
 }
 
-// Get current user email
-const getCurrentEmail = (): string | null => {
-  return localStorage.getItem('fets_current_email');
-};
+const getCurrentEmail = (): string | null =>
+  localStorage.getItem('fets_current_email');
 
-// Sync to cloud in background
-const syncToCloud = async () => {
+// Debounced background push (only when logged in)
+let pushTimeout: ReturnType<typeof setTimeout> | null = null;
+const debouncedPush = () => {
   const email = getCurrentEmail();
-  if (!email) {
-    return;
-  }
-  
-  const barbarismes = JSON.parse(localStorage.getItem(DONE_ITEMS_KEY) || '[]');
-  const dialectes = JSON.parse(localStorage.getItem(DONE_DIALECTES_KEY) || '[]');
-  
-  await cloudSync.saveProgress(email, barbarismes, dialectes);
-};
-
-// Debounced sync to avoid too many API calls
-let syncTimeout: ReturnType<typeof setTimeout> | null = null;
-const debouncedSync = () => {
-  if (syncTimeout) clearTimeout(syncTimeout);
-  syncTimeout = setTimeout(syncToCloud, 1000);
+  if (!email) return;
+  if (pushTimeout) clearTimeout(pushTimeout);
+  pushTimeout = setTimeout(() => {
+    cloudSync.pushChange(email).catch(() => {});
+  }, 800);
 };
 
 export function getDoneItems(): Set<string> {
@@ -58,25 +46,27 @@ export function getDoneDialectes(): Set<string> {
 
 export function saveDoneItems(done: Set<string>): void {
   localStorage.setItem(DONE_ITEMS_KEY, JSON.stringify(Array.from(done)));
-  debouncedSync();
+  debouncedPush();
   dispatchProgressUpdate();
 }
 
 export function saveDoneDialectes(done: Set<string>): void {
   localStorage.setItem(DONE_DIALECTES_KEY, JSON.stringify(Array.from(done)));
-  debouncedSync();
+  debouncedPush();
   dispatchProgressUpdate();
 }
 
 export function markAsDone(barbarism: string): void {
   const done = getDoneItems();
   done.add(barbarism);
+  recordLocalChange(`b:${barbarism}`, true);
   saveDoneItems(done);
 }
 
 export function unmarkAsDone(barbarism: string): void {
   const done = getDoneItems();
   done.delete(barbarism);
+  recordLocalChange(`b:${barbarism}`, false);
   saveDoneItems(done);
 }
 
@@ -84,10 +74,12 @@ export function toggleDone(barbarism: string): boolean {
   const done = getDoneItems();
   if (done.has(barbarism)) {
     done.delete(barbarism);
+    recordLocalChange(`b:${barbarism}`, false);
     saveDoneItems(done);
     return false;
   } else {
     done.add(barbarism);
+    recordLocalChange(`b:${barbarism}`, true);
     saveDoneItems(done);
     return true;
   }
@@ -95,20 +87,24 @@ export function toggleDone(barbarism: string): boolean {
 
 export function markManyAsDone(barbarisms: string[]): void {
   const done = getDoneItems();
-  barbarisms.forEach(b => done.add(b));
+  barbarisms.forEach(b => {
+    done.add(b);
+    recordLocalChange(`b:${b}`, true);
+  });
   saveDoneItems(done);
 }
 
-// Dialect helpers
 export function markDialecteAsDone(dialecte: string): void {
   const done = getDoneDialectes();
   done.add(dialecte);
+  recordLocalChange(`d:${dialecte}`, true);
   saveDoneDialectes(done);
 }
 
 export function unmarkDialecteAsDone(dialecte: string): void {
   const done = getDoneDialectes();
   done.delete(dialecte);
+  recordLocalChange(`d:${dialecte}`, false);
   saveDoneDialectes(done);
 }
 
@@ -116,10 +112,12 @@ export function toggleDialecteDone(dialecte: string): boolean {
   const done = getDoneDialectes();
   if (done.has(dialecte)) {
     done.delete(dialecte);
+    recordLocalChange(`d:${dialecte}`, false);
     saveDoneDialectes(done);
     return false;
   } else {
     done.add(dialecte);
+    recordLocalChange(`d:${dialecte}`, true);
     saveDoneDialectes(done);
     return true;
   }
