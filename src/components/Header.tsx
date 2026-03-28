@@ -259,7 +259,26 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       dispatchProgressUpdate();
       setSyncStatus('success');
       setPendingChanges(0);
-    } catch {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg === 'ACCOUNT_NOT_FOUND') {
+        // Account no longer exists in DB — stop sync, wipe local, logout
+        isSyncingRef.current = false;
+        setIsSyncing(false);
+        setSyncStatus('idle');
+        setLiveSync(false);
+        localStorage.setItem('fets_live_sync', 'false');
+        if (liveSyncTimerRef.current) clearTimeout(liveSyncTimerRef.current);
+        localStorage.removeItem('fets_current_email');
+        localStorage.removeItem('doneBarbarismes');
+        localStorage.removeItem('doneDialectes');
+        localStorage.removeItem('fets_item_timestamps');
+        setCurrentUser(null);
+        setShowUserMenu(false);
+        onProgressUpdate([], []);
+        dispatchProgressUpdate();
+        return;
+      }
       setSyncStatus('error');
     } finally {
       isSyncingRef.current = false;
@@ -556,7 +575,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                               aria-pressed={liveSync}
                               tabIndex={-1}
                             >
-                              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${liveSync ? 'translate-x-[18px]' : 'translate-x-1'}`} />
+                              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${liveSync ? 'translate-x-4' : 'translate-x-0.5'}`} />
                             </button>
                           </div>
                         </div>
