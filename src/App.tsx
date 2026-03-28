@@ -424,7 +424,6 @@ export function App() {
           <p className="mt-4 text-sm text-red-400 text-left md:text-center">Català CSI - Por Víctor De Nadal - Colegio San Ignacio (CSI) Barcelona</p>
         </footer>
       </div>
-      </div>
     </div>
   );
 }
