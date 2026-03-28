@@ -479,36 +479,36 @@ export function Header({ onProgressUpdate }: HeaderProps) {
             {/* --- LOGGED IN: status + user button --- */}
             {currentUser && (
               <>
-                {/* Sync indicator: pulsing red dot when live+idle, or sync/check/error icons */}
+                {/* Sync indicator: pulsing red dot when live ON, or sync/check/error icons when live OFF */}
                 <div className="relative flex items-center justify-center" style={{ width: 18, height: 18 }}>
-                  {/* Red pulsing dot — visible when live sync is ON and idle */}
+                  {/* Red pulsing dot — always visible when live sync is ON */}
                   <span
                     className="transition-opacity duration-300 absolute inset-0 flex items-center justify-center"
-                    style={{ opacity: liveSync && syncStatus === 'idle' ? 1 : 0, pointerEvents: 'none' }}
+                    style={{ opacity: liveSync ? 1 : 0, pointerEvents: 'none' }}
                   >
                     <span className="relative flex h-2.5 w-2.5">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-60" />
                       <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
                     </span>
                   </span>
-                  {/* Syncing spinner */}
+                  {/* Syncing spinner — only when live is OFF */}
                   <span
                     className="transition-opacity duration-300 absolute inset-0 flex items-center justify-center"
-                    style={{ opacity: syncStatus === 'syncing' ? 1 : 0, pointerEvents: 'none' }}
+                    style={{ opacity: !liveSync && syncStatus === 'syncing' ? 1 : 0, pointerEvents: 'none' }}
                   >
                     <RefreshCw size={13} className="animate-spin text-blue-500" />
                   </span>
-                  {/* Success checkmark */}
+                  {/* Success checkmark — only when live is OFF */}
                   <span
                     className="transition-opacity duration-300 absolute inset-0 flex items-center justify-center"
-                    style={{ opacity: syncStatus === 'success' ? 1 : 0, pointerEvents: 'none' }}
+                    style={{ opacity: !liveSync && syncStatus === 'success' ? 1 : 0, pointerEvents: 'none' }}
                   >
                     <CheckCircle size={13} className="text-green-500" />
                   </span>
-                  {/* Error icon */}
+                  {/* Error icon — only when live is OFF */}
                   <span
                     className="transition-opacity duration-300 absolute inset-0 flex items-center justify-center"
-                    style={{ opacity: syncStatus === 'error' ? 1 : 0, pointerEvents: 'none' }}
+                    style={{ opacity: !liveSync && syncStatus === 'error' ? 1 : 0, pointerEvents: 'none' }}
                   >
                     <AlertCircle size={13} className="text-red-500" />
                   </span>
@@ -540,15 +540,15 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                             }
                           }}
                         >
-                          {/* Icon: Live (Radio) when on, RefreshCw when off */}
+                          {/* Icon: always static, no spin, no color change */}
                           {liveSync ? (
-                            <Radio size={14} className="text-red-500" />
+                            <Radio size={14} className="text-gray-400" />
                           ) : (
-                            <RefreshCw size={14} className={isSyncing ? 'animate-spin text-blue-500' : 'text-gray-400'} />
+                            <RefreshCw size={14} className="text-gray-400" />
                           )}
-                          {/* Text changes on hover when liveSync is ON */}
+                          {/* Text: "Sincronització en viu" always, hover shows "Sincronitzar ara" */}
                           <span className="flex-1">
-                            {liveSync && liveSyncHovered ? 'Sincronitzar ara' : liveSync ? 'Sync live' : 'Sincronitzar ara'}
+                            {liveSyncHovered ? 'Sincronitzar ara' : 'Sincronització en viu'}
                           </span>
                           {/* Toggle switch */}
                           <button
