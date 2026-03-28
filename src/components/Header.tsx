@@ -281,7 +281,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
         localStorage.setItem('doneDialectes', JSON.stringify(newData.dialectes));
         
         if (currentUser && isOnline) {
-          await cloudSync.saveProgress(currentUser, newData.barbarismes, newData.dialectes);
+          await cloudSync.sync(currentUser);
         }
         onProgressUpdate(newData.barbarismes, newData.dialectes);
         dispatchProgressUpdate();
