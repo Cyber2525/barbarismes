@@ -568,13 +568,13 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                           </div>
                           {/* RIGHT zone: toggle only, no hover text change */}
                           <div
-                            className="px-3 py-2 cursor-pointer"
+                            className="px-2 py-0 flex items-center justify-center cursor-pointer"
                             onClick={(e) => { e.stopPropagation(); }}
                           >
                             <IOSToggle
                               checked={liveSync}
                               onChange={toggleLiveSync}
-                              scale={0.58}
+                              scale={0.75}
                             />
                           </div>
                         </div>
