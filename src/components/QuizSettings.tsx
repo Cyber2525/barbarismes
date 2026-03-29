@@ -75,7 +75,7 @@ export function QuizSettings({ onSelectQuizSize, currentSize }: QuizSettingsProp
       </button>
       
       {isOpen && (
-        <div className={`modal-container ${isExitingModal ? 'exiting' : ''}`} 
+        <div className={`modal-container bg-black bg-opacity-30 p-4 ${isExitingModal ? 'exiting' : ''}`} 
           onClick={handleCloseModal}>
           <div className={`modal-content bg-white rounded-lg p-4 shadow-lg max-w-[280px] w-full ${isExitingModal ? 'exiting' : ''}`} 
             onClick={e => e.stopPropagation()}>
