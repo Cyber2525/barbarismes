@@ -563,7 +563,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                               <RefreshCw size={14} className="text-gray-400" />
                             )}
                             <span>
-                              {liveSyncHovered ? 'Sincronitzar ara' : 'Sincronització en viu'}
+                              {liveSyncHovered ? 'Sincronitzar ara' : 'Sinc. en directe'}
                             </span>
                           </div>
                           {/* RIGHT zone: toggle only, no hover text change */}
