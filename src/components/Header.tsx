@@ -53,10 +53,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [isExitingLogin, setIsExitingLogin] = useState(false);
   const [isExitingDelete, setIsExitingDelete] = useState(false);
 
-  // Dropdown exit animation states
-  const [isExitingLoginForm, setIsExitingLoginForm] = useState(false);
-  const [isExitingUserMenu, setIsExitingUserMenu] = useState(false);
-
   const closeImportDialog = () => {
     setIsExitingImport(true);
     setTimeout(() => { setIsExitingImport(false); setPendingImport(null); }, 200);
@@ -68,15 +64,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const closeDeleteDialog = () => {
     setIsExitingDelete(true);
     setTimeout(() => { setIsExitingDelete(false); setShowDeleteConfirm(false); setDeleteConfirmText(''); setDownloadedBackup(false); }, 200);
-  };
-
-  const closeLoginForm = () => {
-    setIsExitingLoginForm(true);
-    setTimeout(() => { setIsExitingLoginForm(false); closeLoginForm(); }, 150);
-  };
-  const closeUserMenu = () => {
-    setIsExitingUserMenu(true);
-    setTimeout(() => { setIsExitingUserMenu(false); closeUserMenu(); }, 150);
   };
 
   // Live sync state
@@ -107,7 +94,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (loginRef.current && !loginRef.current.contains(e.target as Node)) {
-        closeLoginForm();
+        setShowLoginForm(false);
       }
     };
     if (showLoginForm) document.addEventListener('mousedown', handler);
@@ -118,7 +105,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        closeUserMenu();
+        setShowUserMenu(false);
       }
     };
     if (showUserMenu) document.addEventListener('mousedown', handler);
@@ -178,7 +165,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       if (hasLocalProgress && hasCloudProgress) {
         setPendingLoginEmail(email);
         setPendingCloudProgress({ barbarismes: cloudBarbarismes, dialectes: cloudDialectes });
-        closeLoginForm();
+        setShowLoginForm(false);
         setEmail('');
         setIsSyncing(false);
         setSyncStatus('idle');
@@ -203,7 +190,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       setCurrentUser(email);
       onProgressUpdate(finalBarbarismes, finalDialectes);
       dispatchProgressUpdate();
-      closeLoginForm();
+      setShowLoginForm(false);
       setEmail('');
       setSyncStatus('success');
     } catch (err: unknown) {
@@ -271,7 +258,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
     setCurrentUser(null);
     setEmail('');
-    closeUserMenu();
+    setShowUserMenu(false);
     setSyncStatus('idle');
 
     // Notify App to refresh the UI with empty progress
@@ -306,7 +293,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
         localStorage.removeItem('doneDialectes');
         localStorage.removeItem('fets_item_timestamps');
         setCurrentUser(null);
-        closeUserMenu();
+        setShowUserMenu(false);
         onProgressUpdate([], []);
         dispatchProgressUpdate();
         return;
@@ -351,12 +338,12 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     const barbarismes = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
     const dialectes = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
     downloadCSI(currentUser, barbarismes, dialectes);
-    closeUserMenu();
+    setShowUserMenu(false);
   };
 
   const handleImportClick = () => {
     fileInputRef.current?.click();
-    closeUserMenu();
+    setShowUserMenu(false);
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -430,7 +417,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       localStorage.removeItem('doneDialectes');
       
       setCurrentUser(null);
-      closeUserMenu();
+      setShowUserMenu(false);
       setShowDeleteConfirm(false);
       setDeleteConfirmText('');
       setDownloadedBackup(false);
@@ -491,7 +478,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                   </button>
 
                   {showLoginForm && (
-                    <div className={`absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50 transition-all duration-150 origin-top-right ${isExitingLoginForm ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
                       <p className="text-sm font-semibold text-gray-800 mb-3">Iniciar sessió</p>
                       <div className="space-y-3">
                         <div>
@@ -576,7 +563,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                   </button>
 
                   {showUserMenu && (
-                    <div className={`absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50 transition-all duration-150 origin-top-right ${isExitingUserMenu ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
                       <p className="text-sm font-semibold text-gray-800 mb-3">{currentUser}</p>
                       <div className="space-y-1">
                         {/* Live sync row — left zone: sync now / right zone: toggle */}
@@ -586,7 +573,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                             className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 flex-1 cursor-pointer"
                             onMouseEnter={() => setLiveSyncHovered(true)}
                             onMouseLeave={() => setLiveSyncHovered(false)}
-                            onClick={() => { handleSync(); closeUserMenu(); }}
+                            onClick={() => { handleSync(); setShowUserMenu(false); }}
                           >
                             {liveSync ? (
                               <Radio size={14} className="text-red-500" />
@@ -625,7 +612,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                         </button>
                         <div className="my-2 border-t border-gray-100" />
                         <button
-                          onClick={() => { setShowDeleteConfirm(true); closeUserMenu(); }}
+                          onClick={() => { setShowDeleteConfirm(true); setShowUserMenu(false); }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                         >
                           <AlertCircle size={14} className="text-orange-400" />
