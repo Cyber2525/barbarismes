@@ -17,7 +17,13 @@ export function CloudSyncPanel({ onProgressUpdate }: CloudSyncPanelProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [pendingImport, setPendingImport] = useState<CSIData | null>(null);
+  const [isExitingImport, setIsExitingImport] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const closeImportDialog = () => {
+    setIsExitingImport(true);
+    setTimeout(() => { setIsExitingImport(false); setPendingImport(null); }, 200);
+  };
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -198,8 +204,8 @@ export function CloudSyncPanel({ onProgressUpdate }: CloudSyncPanelProps) {
       )}
 
       {pendingImport && (
-        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+        <div className={`modal-container bg-black/50 ${isExitingImport ? 'exiting' : ''}`}>
+          <div className={`modal-content bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 ${isExitingImport ? 'exiting' : ''}`}>
             <h3 className="text-base font-semibold text-gray-900 mb-1">Importar fitxer CSI</h3>
             <p className="text-sm text-gray-500 mb-4">
               De: <strong>{pendingImport.userName}</strong> &mdash; {pendingImport.barbarismes.length} barbarismes, {pendingImport.dialectes.length} dialectes
@@ -207,7 +213,7 @@ export function CloudSyncPanel({ onProgressUpdate }: CloudSyncPanelProps) {
             <div className="space-y-2">
               <button onClick={() => applyImport('merge', pendingImport)} className="w-full bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 text-sm">Fusionar (conserva tot)</button>
               <button onClick={() => applyImport('replace', pendingImport)} className="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 text-sm">Substituir (sobreescriu)</button>
-              <button onClick={() => setPendingImport(null)} className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 text-sm">Cancel·lar</button>
+              <button onClick={closeImportDialog} className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 text-sm">Cancel·lar</button>
             </div>
           </div>
         </div>
