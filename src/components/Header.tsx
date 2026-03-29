@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { IOSToggle } from './IOSToggle';
 import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload, Radio } from 'lucide-react';
 import { cloudSync } from '../lib/cloudSync';
 import { downloadCSI, readCSIFile, mergeCSIData, CSIData } from '../lib/csiExport';
@@ -562,21 +563,19 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                               <RefreshCw size={14} className="text-gray-400" />
                             )}
                             <span>
-                              {liveSyncHovered ? 'Sincronitzar ara' : 'Sincronització en viu'}
+                              {liveSyncHovered ? 'Sincronitzar ara' : 'Sinc. en directe'}
                             </span>
                           </div>
                           {/* RIGHT zone: toggle only, no hover text change */}
                           <div
-                            className="px-3 py-2 cursor-pointer"
-                            onClick={(e) => { e.stopPropagation(); toggleLiveSync(); }}
+                            className="px-2 py-0 flex items-center justify-center cursor-pointer"
+                            onClick={(e) => { e.stopPropagation(); }}
                           >
-                            <button
-                              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none !scale-100 hover:!scale-100 active:!scale-100 ${liveSync ? 'bg-red-500' : 'bg-gray-300'}`}
-                              aria-pressed={liveSync}
-                              tabIndex={-1}
-                            >
-                              <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200 ${liveSync ? 'translate-x-5' : 'translate-x-[2px]'}`} />
-                            </button>
+                            <IOSToggle
+                              checked={liveSync}
+                              onChange={toggleLiveSync}
+                              scale={0.75}
+                            />
                           </div>
                         </div>
                         <button
