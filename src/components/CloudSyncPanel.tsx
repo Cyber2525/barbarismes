@@ -17,6 +17,7 @@ export function CloudSyncPanel({ onProgressUpdate }: CloudSyncPanelProps) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   const [pendingImport, setPendingImport] = useState<CSIData | null>(null);
+  const [isExitingDialog, setIsExitingDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -118,7 +119,11 @@ export function CloudSyncPanel({ onProgressUpdate }: CloudSyncPanelProps) {
     }
     onProgressUpdate(newData.barbarismes, newData.dialectes);
     dispatchProgressUpdate();
-    setPendingImport(null);
+    setIsExitingDialog(true);
+    setTimeout(() => {
+      setIsExitingDialog(false);
+      setPendingImport(null);
+    }, 200);
   };
 
   const displayName = currentUser ? currentUser.split('.')[0].toUpperCase() : null;
@@ -198,8 +203,8 @@ export function CloudSyncPanel({ onProgressUpdate }: CloudSyncPanelProps) {
       )}
 
       {pendingImport && (
-        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+        <div className={`modal-container ${isExitingDialog ? 'exiting' : ''}`}>
+          <div className={`modal-content bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 ${isExitingDialog ? 'exiting' : ''}`}>
             <h3 className="text-base font-semibold text-gray-900 mb-1">Importar fitxer CSI</h3>
             <p className="text-sm text-gray-500 mb-4">
               De: <strong>{pendingImport.userName}</strong> &mdash; {pendingImport.barbarismes.length} barbarismes, {pendingImport.dialectes.length} dialectes

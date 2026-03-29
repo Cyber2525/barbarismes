@@ -18,6 +18,15 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
   const [correctedPendingItems, setCorrectedPendingItems] = useState<QuizItem[]>([]);
   // Whether the "register corrected as done?" dialog is shown
   const [showCorrectedDialog, setShowCorrectedDialog] = useState(false);
+  const [isExitingDialog, setIsExitingDialog] = useState(false);
+
+  const handleCloseCorrectedDialog = () => {
+    setIsExitingDialog(true);
+    setTimeout(() => {
+      setIsExitingDialog(false);
+      setShowCorrectedDialog(false);
+    }, 200);
+  };
 
   const getResultMessage = () => {
     if (percentage >= 90) return "Excel·lent! Ets un expert en català!";
@@ -70,8 +79,7 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
   };
 
   const handleSkipCorrected = () => {
-    setShowCorrectedDialog(false);
-    setCorrectedPendingItems([]);
+    handleCloseCorrectedDialog();
   };
 
   const getFailedItems = (): QuizItem[] => {
@@ -218,8 +226,8 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
 
       {/* Dialog for orange (corrected) items */}
       {showCorrectedDialog && correctedPendingItems.length > 0 && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl p-5 max-w-sm w-full">
+        <div className={`modal-container ${isExitingDialog ? 'exiting' : ''}`}>
+          <div className={`modal-content bg-white rounded-xl shadow-xl p-5 max-w-sm w-full ${isExitingDialog ? 'exiting' : ''}`}>
             <div className="flex items-center gap-2 mb-3">
               <Squircle className="text-amber-500 flex-shrink-0" size={22} />
               <h3 className="text-base font-semibold text-gray-800">
