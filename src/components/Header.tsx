@@ -26,7 +26,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
   // Login form state
   const [showLoginForm, setShowLoginForm] = useState(false);
-  const [isExitingLoginForm, setIsExitingLoginForm] = useState(false);
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState('');
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -34,7 +33,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
   // User menu state (when logged in)
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isExitingUserMenu, setIsExitingUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Import state
@@ -68,16 +66,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     setTimeout(() => { setIsExitingDelete(false); setShowDeleteConfirm(false); setDeleteConfirmText(''); setDownloadedBackup(false); }, 200);
   };
 
-  const closeLoginForm = () => {
-    setIsExitingLoginForm(true);
-    setTimeout(() => { setIsExitingLoginForm(false); setShowLoginForm(false); }, 150);
-  };
-
-  const closeUserMenu = () => {
-    setIsExitingUserMenu(true);
-    setTimeout(() => { setIsExitingUserMenu(false); setShowUserMenu(false); }, 150);
-  };
-
   // Live sync state
   const [liveSync, setLiveSync] = useState<boolean>(() => localStorage.getItem('fets_live_sync') === 'true');
   const [liveSyncHovered, setLiveSyncHovered] = useState(false);
@@ -106,7 +94,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (loginRef.current && !loginRef.current.contains(e.target as Node)) {
-        closeLoginForm();
+        setShowLoginForm(false);
       }
     };
     if (showLoginForm) document.addEventListener('mousedown', handler);
@@ -117,7 +105,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        closeUserMenu();
+        setShowUserMenu(false);
       }
     };
     if (showUserMenu) document.addEventListener('mousedown', handler);
@@ -177,7 +165,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       if (hasLocalProgress && hasCloudProgress) {
         setPendingLoginEmail(email);
         setPendingCloudProgress({ barbarismes: cloudBarbarismes, dialectes: cloudDialectes });
-        closeLoginForm();
+        setShowLoginForm(false);
         setEmail('');
         setIsSyncing(false);
         setSyncStatus('idle');
@@ -202,7 +190,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       setCurrentUser(email);
       onProgressUpdate(finalBarbarismes, finalDialectes);
       dispatchProgressUpdate();
-      closeLoginForm();
+      setShowLoginForm(false);
       setEmail('');
       setSyncStatus('success');
     } catch (err: unknown) {
@@ -490,7 +478,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                   </button>
 
                   {showLoginForm && (
-                    <div className={`absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50 transition-all duration-150 ${isExitingLoginForm ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
                       <p className="text-sm font-semibold text-gray-800 mb-3">Iniciar sessió</p>
                       <div className="space-y-3">
                         <div>
@@ -575,7 +563,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                   </button>
 
                   {showUserMenu && (
-                    <div className={`absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50 transition-all duration-150 ${isExitingUserMenu ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
                       <p className="text-sm font-semibold text-gray-800 mb-3">{currentUser}</p>
                       <div className="space-y-1">
                         {/* Live sync row — left zone: sync now / right zone: toggle */}
@@ -583,9 +571,9 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                           {/* LEFT zone: hover changes text, click = sync now */}
                           <div
                             className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 flex-1 cursor-pointer"
-            onMouseEnter={() => setLiveSyncHovered(true)}
-            onMouseLeave={() => setLiveSyncHovered(false)}
-            onClick={() => { handleSync(); closeUserMenu(); }}
+                            onMouseEnter={() => setLiveSyncHovered(true)}
+                            onMouseLeave={() => setLiveSyncHovered(false)}
+                            onClick={() => { handleSync(); setShowUserMenu(false); }}
                           >
                             {liveSync ? (
                               <Radio size={14} className="text-red-500" />
@@ -624,8 +612,8 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                         </button>
                         <div className="my-2 border-t border-gray-100" />
                         <button
-                          onClick={() => { setShowDeleteConfirm(true); closeUserMenu(); }}
-                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-red-50 text-red-700 hover:text-red-800 rounded-lg transition-colors"
+                          onClick={() => { setShowDeleteConfirm(true); setShowUserMenu(false); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                         >
                           <AlertCircle size={14} className="text-orange-400" />
                           Eliminar compte
