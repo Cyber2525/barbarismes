@@ -48,6 +48,24 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [downloadedBackup, setDownloadedBackup] = useState(false);
 
+  // Modal exit animation states
+  const [isExitingImport, setIsExitingImport] = useState(false);
+  const [isExitingLogin, setIsExitingLogin] = useState(false);
+  const [isExitingDelete, setIsExitingDelete] = useState(false);
+
+  const closeImportDialog = () => {
+    setIsExitingImport(true);
+    setTimeout(() => { setIsExitingImport(false); setPendingImport(null); }, 200);
+  };
+  const closeLoginDialog = () => {
+    setIsExitingLogin(true);
+    setTimeout(() => { setIsExitingLogin(false); setPendingLoginEmail(null); setPendingCloudProgress(null); }, 200);
+  };
+  const closeDeleteDialog = () => {
+    setIsExitingDelete(true);
+    setTimeout(() => { setIsExitingDelete(false); setShowDeleteConfirm(false); setDeleteConfirmText(''); setDownloadedBackup(false); }, 200);
+  };
+
   // Live sync state
   const [liveSync, setLiveSync] = useState<boolean>(() => localStorage.getItem('fets_live_sync') === 'true');
   const [liveSyncHovered, setLiveSyncHovered] = useState(false);
@@ -626,8 +644,8 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
       {/* Import dialog */}
       {pendingImport && (
-        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+        <div className={`modal-container bg-black/50 ${isExitingImport ? 'exiting' : ''}`}>
+          <div className={`modal-content bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 ${isExitingImport ? 'exiting' : ''}`}>
             <h3 className="text-base font-semibold text-gray-900 mb-1">Importar fitxer CSI</h3>
             <p className="text-sm text-gray-500 mb-4">
               De: <strong>{pendingImport.userName}</strong> &mdash; {pendingImport.barbarismes.length} barbarismes, {pendingImport.dialectes.length} dialectes
@@ -646,7 +664,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                 Substituir (sobreescriu)
               </button>
               <button
-                onClick={() => setPendingImport(null)}
+                onClick={closeImportDialog}
                 className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 text-sm transition-colors"
               >
                 Cancel·lar
@@ -658,8 +676,8 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
       {/* Login merge/replace dialog */}
       {pendingLoginEmail && pendingCloudProgress && (
-        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+        <div className={`modal-container bg-black/50 ${isExitingLogin ? 'exiting' : ''}`}>
+          <div className={`modal-content bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 ${isExitingLogin ? 'exiting' : ''}`}>
             <h3 className="text-base font-semibold text-gray-900 mb-1">Progrés existent al compte</h3>
             <p className="text-sm text-gray-500 mb-4">
               El teu compte <strong>{pendingLoginEmail.split('.')[0].toUpperCase()}</strong> ja té progrés guardat ({pendingCloudProgress.barbarismes.length} barbarismes, {pendingCloudProgress.dialectes.length} dialectes). Tens progrés local també. Què vols fer?
@@ -681,7 +699,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                 Usar només el del núvol
               </button>
               <button
-                onClick={() => { setPendingLoginEmail(null); setPendingCloudProgress(null); }}
+                onClick={closeLoginDialog}
                 disabled={isSyncing}
                 className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 disabled:opacity-50 text-sm transition-colors"
               >
@@ -694,8 +712,8 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
       {/* Delete account confirmation dialog */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+        <div className={`modal-container bg-black/50 ${isExitingDelete ? 'exiting' : ''}`}>
+          <div className={`modal-content bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 ${isExitingDelete ? 'exiting' : ''}`}>
             <h3 className="text-base font-semibold text-red-600 mb-2">Eliminar compte i dades</h3>
             <p className="text-sm text-gray-600 mb-4">
               Aquesta acció eliminarà permanentment el teu compte <strong>{currentUser}</strong> i totes les seves dades. Això és irreversible.
@@ -742,11 +760,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
               {/* Cancel button */}
               <button
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setDeleteConfirmText('');
-                  setDownloadedBackup(false);
-                }}
+                onClick={closeDeleteDialog}
                 disabled={isSyncing}
                 className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 disabled:opacity-50 text-sm transition-colors"
               >
