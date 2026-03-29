@@ -252,6 +252,38 @@ button:focus-visible {
   animation: fadeIn 0.3s ease-in-out;
 }
 
+/* Dropdown animations */
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes dropdownOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(-6px);
+  }
+}
+
+.dropdown-panel {
+  transform-origin: top right;
+  animation: dropdownIn 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.dropdown-panel.exiting {
+  animation: dropdownOut 140ms ease-in forwards;
+}
+
 /* Modal classes */
 .modal-open {
   overflow: hidden;
