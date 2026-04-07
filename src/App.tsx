@@ -54,7 +54,7 @@ export function App() {
     isPracticeMode: false,
     originalFailedItems: []
   });
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [quizHasStarted, setQuizHasStarted] = useState(false);
   
   // Single study mode state for both content types
@@ -81,10 +81,7 @@ export function App() {
 
   // Initialize quiz on first mount only
   useEffect(() => {
-    setIsLoading(true);
-    setTimeout(() => {
-      startNewQuiz();
-    }, 800);
+    startNewQuiz();
   }, []);
 
   // Re-start quiz when cloud progress is loaded after login
@@ -177,51 +174,56 @@ export function App() {
     isPracticeMode: boolean = false,
     overrides?: { size?: number; mode?: QuizMode; doneFilter?: DoneQuizFilter }
   ) => {
-    const effectiveSize = overrides?.size ?? quizSize;
-    const effectiveMode = overrides?.mode ?? quizMode;
-    const effectiveDoneFilter = overrides?.doneFilter ?? doneFilter;
+    try {
+      const effectiveSize = overrides?.size ?? quizSize;
+      const effectiveMode = overrides?.mode ?? quizMode;
+      const effectiveDoneFilter = overrides?.doneFilter ?? doneFilter;
 
-    // Use provided items if available, otherwise generate random items
-    let quizItems = specificItems || getRandomQuizItems(effectiveSize, effectiveMode, effectiveDoneFilter);
-      
-      // If specific items are provided and it's practice mode, preserve their practice state
-      if (specificItems && isPracticeMode) {
-        quizItems = quizItems.map(item => {
-          // Preserve existing practice indicators if they exist
-          return {
-            ...item,
-            isPracticeItem: true,
-            // Ensure these flags are preserved if they already exist
-            wasCorrectInLastRound: item.wasCorrectInLastRound || false,
-            previouslyCorrectInPractice: item.previouslyCorrectInPractice || false
-          };
+      // Use provided items if available, otherwise generate random items
+      let quizItems = specificItems || getRandomQuizItems(effectiveSize, effectiveMode, effectiveDoneFilter);
+        
+        // If specific items are provided and it's practice mode, preserve their practice state
+        if (specificItems && isPracticeMode) {
+          quizItems = quizItems.map(item => {
+            // Preserve existing practice indicators if they exist
+            return {
+              ...item,
+              isPracticeItem: true,
+              // Ensure these flags are preserved if they already exist
+              wasCorrectInLastRound: item.wasCorrectInLastRound || false,
+              previouslyCorrectInPractice: item.previouslyCorrectInPractice || false
+            };
+          });
+        }
+        
+        // If we're starting a new regular quiz (not practice mode), clear any stored original items
+        if (!isPracticeMode) {
+          localStorage.removeItem('originalQuizItems');
+          localStorage.removeItem('originalQuizAnswers');
+          localStorage.removeItem('originalQuizState');
+          localStorage.removeItem('firstOriginalQuizState');
+          localStorage.removeItem('practiceRound');
+        }
+        
+        // Reset quizHasStarted when starting a new quiz (but not for practice mode continuations)
+        if (!isPracticeMode) {
+          setQuizHasStarted(false);
+        }
+        
+        setQuizState({
+          items: quizItems,
+          currentIndex: 0,
+          score: 0,
+          answers: new Array(quizItems.length).fill(''),
+          completed: false,
+          isPracticeMode: isPracticeMode,
+          originalFailedItems: isPracticeMode ? [...quizItems] : []
         });
-      }
-      
-      // If we're starting a new regular quiz (not practice mode), clear any stored original items
-      if (!isPracticeMode) {
-        localStorage.removeItem('originalQuizItems');
-        localStorage.removeItem('originalQuizAnswers');
-        localStorage.removeItem('originalQuizState');
-        localStorage.removeItem('firstOriginalQuizState');
-        localStorage.removeItem('practiceRound');
-      }
-      
-      // Reset quizHasStarted when starting a new quiz (but not for practice mode continuations)
-      if (!isPracticeMode) {
-        setQuizHasStarted(false);
-      }
-      
-      setQuizState({
-        items: quizItems,
-        currentIndex: 0,
-        score: 0,
-        answers: new Array(quizItems.length).fill(''),
-        completed: false,
-        isPracticeMode: isPracticeMode,
-        originalFailedItems: isPracticeMode ? [...quizItems] : []
-      });
-    setIsLoading(false);
+    } catch (err) {
+      console.error('[App] Error starting quiz:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleAnswer = (answer: string, isCorrect: boolean) => {
