@@ -162,8 +162,8 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     try {
       const user = await cloudSync.login(email);
 
-      const cloudBarbarismes = user.progress_data;
-      const cloudDialectes = user.dialect_progress;
+      const cloudBarbarismes = user.progress_data || [];
+      const cloudDialectes = user.dialect_progress || [];
       const cloudTs = user.item_timestamps;
 
       // Get current local progress
@@ -197,7 +197,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       localStorage.setItem('fets_item_timestamps', JSON.stringify(cloudTs));
 
       // If new user with local data, push local to cloud right away
-      if (!hasCloudProgress && hasLocalProgress) {
+      if (!hasCloudProgress && (localBarbarismes.length > 0 || localDialectes.length > 0)) {
         await cloudSync.sync(email);
       }
 
