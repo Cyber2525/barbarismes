@@ -44,6 +44,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   // Login merge/replace dialog state
   const [pendingLoginEmail, setPendingLoginEmail] = useState<string | null>(null);
   const [pendingCloudProgress, setPendingCloudProgress] = useState<CloudProgress | null>(null);
+  const [loginAction, setLoginAction] = useState<'merge' | 'replace' | null>(null);
 
   // Delete account confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -168,11 +169,14 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       // Get current local progress
       const localBarbarismes: string[] = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
       const localDialectes: string[] = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
-      const hasLocalProgress = localBarbarismes.length > 0 || localDialectes.length > 0;
       const hasCloudProgress = cloudBarbarismes.length > 0 || cloudDialectes.length > 0;
+      
+      // Check if there are local fets that are NOT in the cloud
+      const localNotInCloud = localBarbarismes.some(b => !cloudBarbarismes.includes(b)) || 
+                              localDialectes.some(d => !cloudDialectes.includes(d));
 
-      // If both have data, show merge/replace dialog
-      if (hasLocalProgress && hasCloudProgress) {
+      // If both have data AND there are local fets not in cloud, show merge/replace dialog
+      if (localNotInCloud && hasCloudProgress) {
         setPendingLoginEmail(email);
         setPendingCloudProgress({ barbarismes: cloudBarbarismes, dialectes: cloudDialectes });
         closeLoginForm();
@@ -220,6 +224,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   // Handle login merge/replace confirmation
   const handleLoginConfirm = async (mode: 'merge' | 'replace') => {
     if (!pendingLoginEmail || !pendingCloudProgress) return;
+    setLoginAction(mode);
     setIsSyncing(true);
     setSyncStatus('syncing');
     try {
@@ -272,6 +277,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     } finally {
       setPendingLoginEmail(null);
       setPendingCloudProgress(null);
+      setLoginAction(null);
       setIsSyncing(false);
       setTimeout(() => setSyncStatus('idle'), 2000);
     }
@@ -717,7 +723,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                 disabled={isSyncing}
                 className="w-full bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm transition-colors"
               >
-                {isSyncing ? <RefreshCw size={15} className="animate-spin" /> : null}
+                {isSyncing && loginAction === 'merge' ? <RefreshCw size={15} className="animate-spin" /> : null}
                 Fusionar (conserva tot)
               </button>
               <button
@@ -725,6 +731,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                 disabled={isSyncing}
                 className="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm transition-colors"
               >
+                {isSyncing && loginAction === 'replace' ? <RefreshCw size={15} className="animate-spin" /> : null}
                 Usar només el del núvol
               </button>
               <button
