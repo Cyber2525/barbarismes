@@ -161,7 +161,7 @@ export const IOSToggle: React.FC<IOSToggleProps> = ({
         onPointerDown={handlePointerDown}
         className={`absolute top-0 left-0 w-[51px] h-[31px] rounded-full touch-none select-none transition-colors duration-300 
             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-            ${activeMode ? 'bg-red-500' : 'bg-[#E9E9EA] dark:bg-[#39393D]'} 
+            ${activeMode ? 'bg-red-500' : 'bg-[#E9E9EA]'} 
         `}
         role="switch"
         aria-checked={checked}
