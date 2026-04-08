@@ -169,7 +169,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       // Get current local progress
       const localBarbarismes: string[] = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
       const localDialectes: string[] = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
-      const hasLocalProgress = localBarbarismes.length > 0 || localDialectes.length > 0;
       const hasCloudProgress = cloudBarbarismes.length > 0 || cloudDialectes.length > 0;
       
       // Check if there are local fets that are NOT in the cloud
