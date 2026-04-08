@@ -242,7 +242,7 @@ export const cloudSync = {
     return { barbarismes: result.barbarismes, dialectes: result.dialectes };
   },
 
-  // Push local timestamps to cloud without doing a full LWW pull (background push after each toggle)
+  // Push local timestamps to cloud (only upload, no download to avoid visual bugs)
   async pushChange(email: string): Promise<void> {
     if (!navigator.onLine || !isSupabaseConfigured() || !supabase) return;
 
@@ -250,35 +250,21 @@ export const cloudSync = {
     const localDialectes: string[] = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
     const localTs: ItemTimestamps = getLocalTimestamps();
 
-    // Pull cloud timestamps only (not full arrays) for LWW
-    const { data, error } = await supabase
-      .from('users_progress')
-      .select('progress_data, dialect_progress, item_timestamps')
-      .eq('email', email)
-      .single();
-
-    if (error) return; // silent fail on background push
-
-    const cloudTs: ItemTimestamps = data.item_timestamps || {};
-    const result = applyLWW(
-      localBarbarismes, localDialectes, localTs,
-      data.progress_data || [], data.dialect_progress || [], cloudTs,
-    );
-
-    await supabase
-      .from('users_progress')
-      .update({
-        progress_data: result.barbarismes,
-        dialect_progress: result.dialectes,
-        item_timestamps: result.timestamps,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('email', email);
-
-    // Also apply LWW result locally (another device may have made changes)
-    localStorage.setItem('doneBarbarismes', JSON.stringify(result.barbarismes));
-    localStorage.setItem('doneDialectes', JSON.stringify(result.dialectes));
-    saveLocalTimestamps(result.timestamps);
+    // Just push current local state to cloud without pulling
+    // The user's local change is always the most recent, so we don't need LWW here
+    try {
+      await supabase
+        .from('users_progress')
+        .update({
+          progress_data: localBarbarismes,
+          dialect_progress: localDialectes,
+          item_timestamps: localTs,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('email', email);
+    } catch {
+      // silent fail on background push
+    }
   },
 
   // Delete account and all data from Supabase
