@@ -197,7 +197,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       localStorage.setItem('fets_item_timestamps', JSON.stringify(cloudTs));
 
       // If new user with local data, push local to cloud right away
-      if (!hasCloudProgress && (localBarbarismes.length > 0 || localDialectes.length > 0)) {
+      if (!hasCloudProgress && hasLocalProgress) {
         await cloudSync.sync(email);
       }
 
