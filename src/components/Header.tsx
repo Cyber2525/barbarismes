@@ -223,26 +223,45 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     setIsSyncing(true);
     setSyncStatus('syncing');
     try {
-      const localBarbarismes: string[] = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
-      const localDialectes: string[] = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
-
       let finalBarbarismes: string[];
       let finalDialectes: string[];
 
       if (mode === 'merge') {
+        // Fusionar: combinar datos locales + nube y subir todo
+        const localBarbarismes: string[] = JSON.parse(localStorage.getItem('doneBarbarismes') || '[]');
+        const localDialectes: string[] = JSON.parse(localStorage.getItem('doneDialectes') || '[]');
+        
         finalBarbarismes = Array.from(new Set([...localBarbarismes, ...pendingCloudProgress.barbarismes]));
         finalDialectes = Array.from(new Set([...localDialectes, ...pendingCloudProgress.dialectes]));
+        
+        localStorage.setItem('fets_current_email', pendingLoginEmail);
+        localStorage.setItem('doneBarbarismes', JSON.stringify(finalBarbarismes));
+        localStorage.setItem('doneDialectes', JSON.stringify(finalDialectes));
+        
+        // Push the merged state to cloud
+        await cloudSync.sync(pendingLoginEmail);
       } else {
+        // Replace: PRIMERO eliminar datos locales, LUEGO usar solo datos de la nube
+        // NO hacer sync porque solo queremos bajar de la nube, no subir
         finalBarbarismes = pendingCloudProgress.barbarismes;
         finalDialectes = pendingCloudProgress.dialectes;
+        
+        // Limpiar datos locales primero
+        localStorage.removeItem('doneBarbarismes');
+        localStorage.removeItem('doneDialectes');
+        localStorage.removeItem('fets_item_timestamps');
+        
+        // Aplicar solo datos de la nube
+        localStorage.setItem('fets_current_email', pendingLoginEmail);
+        localStorage.setItem('doneBarbarismes', JSON.stringify(finalBarbarismes));
+        localStorage.setItem('doneDialectes', JSON.stringify(finalDialectes));
+        
+        // Obtener timestamps de la nube para futuras sincronizaciones
+        const user = await cloudSync.login(pendingLoginEmail);
+        localStorage.setItem('fets_item_timestamps', JSON.stringify(user.item_timestamps));
+        
+        // NO hacer sync aquí - solo queremos bajar de la nube, no subir nada
       }
-
-      localStorage.setItem('fets_current_email', pendingLoginEmail);
-      localStorage.setItem('doneBarbarismes', JSON.stringify(finalBarbarismes));
-      localStorage.setItem('doneDialectes', JSON.stringify(finalDialectes));
-
-      // Push the final state to cloud with LWW
-      await cloudSync.sync(pendingLoginEmail);
 
       setCurrentUser(pendingLoginEmail);
       onProgressUpdate(finalBarbarismes, finalDialectes);
