@@ -457,7 +457,6 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
                                 )}
                               </div>
                             </div>
-                            </div>
                             <div className="text-sm text-gray-600">
                               {item.correctForms[0]}{item.correctForms.length > 1 ? ', ...' : ''}
                             </div>
