@@ -433,8 +433,10 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
                           </button>
 
                           <div className="min-w-0">
-                            <div className={`font-medium ${isDone ? 'text-green-800 line-through decoration-green-400' : 'text-gray-800'}`}>
-                              {item.barbarism}
+                            <div className="font-medium">
+                              <span className={isDone ? 'text-green-800 line-through decoration-green-400' : 'text-gray-800'}>
+                                {item.barbarism}
+                              </span>
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {item.type === 'frase' && (
                                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -451,11 +453,6 @@ export function StudySheet({ mode: initialMode, onBack }: StudySheetProps) {
                                 {item.correctForms.length > 1 && (
                                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                                     {item.correctForms.length} formes
-                                  </span>
-                                )}
-                                {isDone && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                    Fet
                                   </span>
                                 )}
                               </div>
