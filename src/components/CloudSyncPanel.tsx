@@ -5,7 +5,7 @@ import { downloadCSI, readCSIFile, mergeCSIData, CSIData } from '../lib/csiExpor
 import { dispatchProgressUpdate } from '../utils/doneItems';
 
 interface CloudSyncPanelProps {
-  onProgressUpdate: (barbarismes: string[], dialectes: string[]) => void;
+  onProgressUpdate: (barbarismes: string[], dialectes: string[], isLogin?: boolean) => void;
 }
 
 export function CloudSyncPanel({ onProgressUpdate }: CloudSyncPanelProps) {
@@ -65,7 +65,7 @@ export function CloudSyncPanel({ onProgressUpdate }: CloudSyncPanelProps) {
     setSyncStatus('syncing');
     try {
       const result = await cloudSync.sync(currentUser);
-      onProgressUpdate(result.barbarismes, result.dialectes);
+      onProgressUpdate(result.barbarismes, result.dialectes, false);
       dispatchProgressUpdate();
       setSyncStatus('success');
     } catch {
@@ -82,7 +82,7 @@ export function CloudSyncPanel({ onProgressUpdate }: CloudSyncPanelProps) {
     localStorage.removeItem('doneDialectes');
     setCurrentUser(null);
     setSyncStatus('idle');
-    onProgressUpdate([], []);
+    onProgressUpdate([], [], true);
     dispatchProgressUpdate();
   };
 
@@ -122,7 +122,7 @@ export function CloudSyncPanel({ onProgressUpdate }: CloudSyncPanelProps) {
     if (currentUser && isOnline) {
       await cloudSync.sync(currentUser);
     }
-    onProgressUpdate(newData.barbarismes, newData.dialectes);
+    onProgressUpdate(newData.barbarismes, newData.dialectes, true);
     dispatchProgressUpdate();
     setPendingImport(null);
   };

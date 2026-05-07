@@ -21,9 +21,13 @@ const DEFAULT_QUIZ_SIZE = 20;
 export function App() {
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Called by Header when cloud progress is loaded — bumps key to re-read localStorage
-  const handleProgressUpdate = (_barbarismes: string[], _dialectes: string[]) => {
-    setRefreshKey(k => k + 1);
+  // Called by Header when cloud progress is loaded
+  // isLogin = true means user just logged in or logged out → restart quiz
+  // isLogin = false means sync only → don't restart quiz
+  const handleProgressUpdate = (_barbarismes: string[], _dialectes: string[], isLogin: boolean = false) => {
+    if (isLogin) {
+      setRefreshKey(k => k + 1);
+    }
   };
   const [appSection, setAppSection] = useState<'barbarismes' | 'dialectes'>(() => {
     const savedSection = localStorage.getItem('appSection');
