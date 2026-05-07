@@ -6,7 +6,7 @@ import { downloadCSI, readCSIFile, mergeCSIData, CSIData } from '../lib/csiExpor
 import { dispatchProgressUpdate } from '../utils/doneItems';
 
 interface HeaderProps {
-  onProgressUpdate: (barbarismes: string[], dialectes: string[]) => void;
+  onProgressUpdate: (barbarismes: string[], dialectes: string[], isLogin?: boolean) => void;
 }
 
 // Cloud progress for merge/replace dialog
@@ -202,7 +202,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       }
 
       setCurrentUser(email);
-      onProgressUpdate(finalBarbarismes, finalDialectes);
+      onProgressUpdate(finalBarbarismes, finalDialectes, true);
       dispatchProgressUpdate();
       closeLoginForm();
       setEmail('');
@@ -269,7 +269,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       }
 
       setCurrentUser(pendingLoginEmail);
-      onProgressUpdate(finalBarbarismes, finalDialectes);
+      onProgressUpdate(finalBarbarismes, finalDialectes, true);
       dispatchProgressUpdate();
       setSyncStatus('success');
     } catch {
@@ -297,7 +297,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     setSyncStatus('idle');
 
     // Notify App to refresh the UI with empty progress
-    onProgressUpdate([], []);
+    onProgressUpdate([], [], true);
     dispatchProgressUpdate();
   };
 
@@ -309,7 +309,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     setSyncStatus('syncing');
     try {
       const result = await cloudSync.sync(currentUser);
-      onProgressUpdate(result.barbarismes, result.dialectes);
+      onProgressUpdate(result.barbarismes, result.dialectes, false);
       dispatchProgressUpdate();
       setSyncStatus('success');
       setPendingChanges(0);
@@ -329,7 +329,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
         localStorage.removeItem('fets_item_timestamps');
         setCurrentUser(null);
         setShowUserMenu(false);
-        onProgressUpdate([], []);
+        onProgressUpdate([], [], true);
         dispatchProgressUpdate();
         return;
       }
@@ -401,7 +401,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
         if (currentUser && isOnline) {
           await cloudSync.sync(currentUser);
         }
-        onProgressUpdate(newData.barbarismes, newData.dialectes);
+        onProgressUpdate(newData.barbarismes, newData.dialectes, true);
         dispatchProgressUpdate();
       } else {
         // Otherwise, show merge/replace dialog
@@ -429,7 +429,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     if (currentUser && isOnline) {
       await cloudSync.sync(currentUser);
     }
-    onProgressUpdate(newData.barbarismes, newData.dialectes);
+    onProgressUpdate(newData.barbarismes, newData.dialectes, true);
     dispatchProgressUpdate();
     setPendingImport(null);
   };
@@ -457,7 +457,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
       setDeleteConfirmText('');
       setDownloadedBackup(false);
       setSyncStatus('success');
-      onProgressUpdate([], []);
+      onProgressUpdate([], [], true);
       dispatchProgressUpdate();
     } catch (error) {
       console.error('Error deleting account:', error);

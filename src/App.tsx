@@ -13,17 +13,16 @@ import { DialectStudySheet } from './components/DialectStudySheet';
 import { DialectQuiz } from './components/DialectQuiz';
 import { OfflineButton } from './components/OfflineButton';
 import { Header } from './components/Header';
+import { markAsDone, getDoneItems } from './utils/doneItems';
 import { BookOpen, Globe, Languages, Pencil } from 'lucide-react';
 
 // Default quiz size
 const DEFAULT_QUIZ_SIZE = 20;
 
 export function App() {
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  // Called by Header when cloud progress is loaded — bumps key to re-read localStorage
-  const handleProgressUpdate = (_barbarismes: string[], _dialectes: string[]) => {
-    setRefreshKey(k => k + 1);
+  // Called by Header when cloud progress is loaded — no quiz restart needed
+  const handleProgressUpdate = (_barbarismes: string[], _dialectes: string[], _isLogin: boolean = false) => {
+    // intentionally no-op: sync and login no longer restart the quiz
   };
   const [appSection, setAppSection] = useState<'barbarismes' | 'dialectes'>(() => {
     const savedSection = localStorage.getItem('appSection');
@@ -87,13 +86,6 @@ export function App() {
     }, 800);
   }, []);
 
-  // Re-start quiz when cloud progress is loaded after login
-  useEffect(() => {
-    if (refreshKey > 0) {
-      startNewQuiz();
-    }
-  }, [refreshKey]);
-  
   // Listen for practice failed items event
   useEffect(() => {
     const handlePracticeFailedItems = (event: CustomEvent) => {
@@ -235,6 +227,16 @@ export function App() {
     
     if (isCorrect) {
       updatedState.score += 1;
+
+      // Immediately mark as "fet" if answered correctly on the first try
+      // (not in practice mode, where items have already been seen)
+      const currentItem = quizState.items[quizState.currentIndex];
+      if (!quizState.isPracticeMode && currentItem) {
+        const doneSet = getDoneItems();
+        if (!doneSet.has(currentItem.barbarism)) {
+          markAsDone(currentItem.barbarism);
+        }
+      }
     }
     
     // Update state immediately without moving to next question
