@@ -728,68 +728,91 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
     };
   }, [showUninstallConfirm]);
   
-  // Compact (header) render: rectangular button with dropdown panel, same as Login
+  // Compact (header) render: rectangular button with dropdown panel, matching Login style
   if (compact) {
     const isChecking = installStatus === 'checking' || installStatus === 'unknown';
 
-    // Status section: wifi + install state
-    const statusColor = isOffline
-      ? 'text-red-500'
-      : isInstalled
-      ? 'text-green-600'
+    // ── Trigger button appearance ─────────────────────────────────────────
+    const triggerLabel = isInstalled
+      ? 'Instal·lada'
       : isInstalling
-      ? 'text-yellow-600'
+      ? `${cachingProgress}%`
+      : isOffline
+      ? 'Offline'
       : isChecking
-      ? 'text-gray-400'
-      : 'text-blue-600';
+      ? '...'
+      : 'Instal·lar';
 
-    const statusBg = isOffline
-      ? 'bg-red-50'
-      : isInstalled
-      ? 'bg-green-50'
-      : isInstalling
-      ? 'bg-yellow-50'
-      : isChecking
-      ? 'bg-gray-50'
-      : 'bg-blue-50';
-
-    const statusIcon = isOffline ? (
-      <WifiOff size={14} />
+    const triggerIcon = isInstalled ? (
+      <Check size={15} />
     ) : isInstalling ? (
-      <RefreshCw size={14} className="animate-spin" />
-    ) : isInstalled ? (
-      <Check size={14} />
+      <RefreshCw size={15} className="animate-spin" />
+    ) : isOffline ? (
+      <WifiOff size={15} />
     ) : isChecking ? (
-      <RefreshCw size={14} className="animate-spin" />
+      <RefreshCw size={15} className="animate-spin" />
     ) : (
-      <Wifi size={14} />
+      <Download size={15} />
     );
 
-    const statusText = isOffline
-      ? 'Sense connexió'
+    // Installed = yellow (like the app branding color scheme), installing = yellow pulsing,
+    // offline = gray, checking = gray, ready to install = blue (brand CTA color)
+    const triggerClass = isInstalled
+      ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
       : isInstalling
-      ? `${updateAvailable ? 'Actualitzant' : 'Instal·lant'} ${cachingProgress}%`
+      ? 'bg-yellow-400 text-white cursor-wait animate-pulse'
+      : isOffline
+      ? 'bg-gray-400 text-white cursor-not-allowed'
+      : isChecking
+      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+      : 'bg-blue-600 hover:bg-blue-700 text-white';
+
+    // ── Dropdown: status pill ─────────────────────────────────────────────
+    const wifiLabel = isOffline ? 'Sense connexió' : 'Amb connexió';
+    const wifiIcon = isOffline
+      ? <WifiOff size={15} className="text-red-500" />
+      : <Wifi size={15} className="text-blue-500" />;
+    const wifiBg = isOffline ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100';
+    const wifiTextColor = isOffline ? 'text-red-600' : 'text-blue-700';
+
+    const installLabel = isInstalling
+      ? `${updateAvailable ? 'Actualitzant' : 'Instal·lant'}… ${cachingProgress}%`
       : isInstalled
       ? 'Instal·lada'
       : isChecking
       ? 'Comprovant...'
-      : 'Amb connexió';
+      : 'No instal·lada';
+    const installIcon = isInstalling ? (
+      <RefreshCw size={15} className="text-yellow-500 animate-spin" />
+    ) : isInstalled ? (
+      <Check size={15} className="text-yellow-500" />
+    ) : isChecking ? (
+      <RefreshCw size={15} className="text-gray-400 animate-spin" />
+    ) : (
+      <Download size={15} className="text-gray-400" />
+    );
+    const installBg = isInstalling
+      ? 'bg-yellow-50 border-yellow-100'
+      : isInstalled
+      ? 'bg-yellow-50 border-yellow-100'
+      : isChecking
+      ? 'bg-gray-50 border-gray-100'
+      : 'bg-gray-50 border-gray-100';
+    const installTextColor = isInstalling || isInstalled ? 'text-yellow-700' : 'text-gray-500';
 
-    const installStatusText = isInstalled ? 'Instal·lada' : 'No instal·lada';
-
-    // Action button (bottom section of dropdown)
+    // ── Dropdown: action button ───────────────────────────────────────────
     const actionButton = isInstalled ? (
       <button
         onClick={() => { setShowDropdown(false); setShowUninstallConfirm(true); }}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
+        className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors text-sm"
       >
         <Trash2 size={15} />
-        Desinstal·lar
+        Desinstal·lar aplicació
       </button>
     ) : isInstalling ? (
       <button
         disabled
-        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg cursor-wait text-sm font-medium"
+        className="w-full bg-yellow-400 text-white py-2 rounded-lg cursor-wait flex items-center justify-center gap-2 text-sm"
       >
         <RefreshCw size={15} className="animate-spin" />
         {updateAvailable ? 'Actualitzant...' : 'Instal·lant...'}
@@ -797,7 +820,7 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
     ) : isOffline ? (
       <button
         disabled
-        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed text-sm font-medium"
+        className="w-full bg-gray-200 text-gray-400 py-2 rounded-lg cursor-not-allowed flex items-center justify-center gap-2 text-sm"
       >
         <WifiOff size={15} />
         Sense connexió
@@ -805,15 +828,15 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
     ) : updateAvailable ? (
       <button
         onClick={() => { setShowDropdown(false); installServiceWorker(); }}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors text-sm font-medium"
+        className="w-full bg-yellow-500 text-white py-2 rounded-lg hover:bg-yellow-600 flex items-center justify-center gap-2 transition-colors text-sm"
       >
         <CircleAlert size={15} />
-        Actualitzar
+        Actualitzar aplicació
       </button>
     ) : isChecking ? (
       <button
         disabled
-        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed text-sm font-medium"
+        className="w-full bg-gray-200 text-gray-400 py-2 rounded-lg cursor-not-allowed flex items-center justify-center gap-2 text-sm"
       >
         <RefreshCw size={15} className="animate-spin" />
         Comprovant...
@@ -821,49 +844,45 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
     ) : (
       <button
         onClick={() => { setShowDropdown(false); installServiceWorker(); }}
-        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
+        className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 transition-colors text-sm"
       >
         <Download size={15} />
         Instal·lar aplicació
       </button>
     );
 
-    // Trigger button (header pill): icon + short label like Login
-    const triggerLabel = isInstalled ? 'Instal·lada' : isInstalling ? 'Instal·lant...' : isOffline ? 'Offline' : isChecking ? '...' : 'Instal·lar';
-    const triggerIcon = isInstalled ? <Check size={15} /> : isInstalling ? <RefreshCw size={15} className="animate-spin" /> : isOffline ? <WifiOff size={15} /> : isChecking ? <RefreshCw size={15} className="animate-spin" /> : <Download size={15} />;
-    const triggerClass = isInstalled
-      ? 'bg-green-600 hover:bg-green-700 text-white'
-      : isInstalling
-      ? 'bg-yellow-500 text-white cursor-wait'
-      : isOffline
-      ? 'bg-gray-400 text-white cursor-not-allowed'
-      : isChecking
-      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-      : 'bg-blue-600 hover:bg-blue-700 text-white';
-
     return (
       <div ref={dropdownRef} className="relative">
+        {/* Trigger — same shape as Login button */}
         <button
-          onClick={() => !isChecking && !isOffline && !isInstalling ? setShowDropdown(v => !v) : undefined}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium ${triggerClass}`}
+          onClick={() => setShowDropdown(v => !v)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${triggerClass}`}
           aria-label="Estat de la instal·lació"
         >
           {triggerIcon}
           <span className="hidden sm:inline">{triggerLabel}</span>
         </button>
 
+        {/* Dropdown — identical container style to Login/User dropdown */}
         {showDropdown && (
-          <div className="dropdown-panel absolute top-full right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 p-3 z-50">
-            {/* Status row */}
-            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg mb-2 ${statusBg} ${statusColor}`}>
-              {statusIcon}
-              <div className="flex flex-col leading-tight">
-                <span className="text-xs font-semibold">{statusText}</span>
-                <span className="text-xs opacity-70">{installStatusText}</span>
+          <div className="dropdown-panel absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50">
+            <p className="text-sm font-semibold text-gray-800 mb-3">Aplicació</p>
+
+            {/* Status pills — two rows like the original card */}
+            <div className="space-y-2 mb-3">
+              {/* Wifi row */}
+              <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border ${wifiBg}`}>
+                {wifiIcon}
+                <span className={`text-sm font-medium ${wifiTextColor}`}>{wifiLabel}</span>
+              </div>
+              {/* Install row */}
+              <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border ${installBg}`}>
+                {installIcon}
+                <span className={`text-sm font-medium ${installTextColor}`}>{installLabel}</span>
               </div>
             </div>
 
-            {/* Action button */}
+            {/* Action button — same style as Login's "Entrar" */}
             {actionButton}
 
             {installationError && (
