@@ -118,7 +118,7 @@ function applyLWW(
 export const cloudSync = {
   // Validate email format
   validateEmail(email: string): boolean {
-    const pattern = /^[a-zA-Z0-9]{1,8}\.santignasi@fje\.edu$/;
+    const pattern = /^[0-9]{1,11}\.santignasi@fje\.edu$/;
     return pattern.test(email);
   },
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { QuizItem } from '../types/quiz';
-import { Check, CheckSquare, RefreshCw, Squircle, X } from 'lucide-react';
+import { Check, CheckSquare, RefreshCw, Square, Squircle, X } from 'lucide-react';
 import { getDoneItems, markAsDone, markManyAsDone } from '../utils/doneItems';
 
 interface QuizResultsProps {
@@ -16,17 +16,47 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
 
   // Items corrected after failing (orange) that need the dialog
   const [correctedPendingItems, setCorrectedPendingItems] = useState<QuizItem[]>([]);
+  // Track which items are selected to save
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   // Whether the "register corrected as done?" dialog is shown
   const [showCorrectedDialog, setShowCorrectedDialog] = useState(false);
   const [isExitingDialog, setIsExitingDialog] = useState(false);
+  // Track if the dialog has already been shown/dismissed this session
+  const [dialogDismissed, setDialogDismissed] = useState(false);
 
   const closeCorrectedDialog = (andClear = false) => {
     setIsExitingDialog(true);
+    setDialogDismissed(true); // Mark as dismissed so it won't show again
     setTimeout(() => {
       setIsExitingDialog(false);
       setShowCorrectedDialog(false);
-      if (andClear) setCorrectedPendingItems([]);
+      if (andClear) {
+        setCorrectedPendingItems([]);
+        setSelectedItems(new Set());
+      }
     }, 200);
+  };
+
+  const toggleItemSelection = (barbarism: string) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(barbarism)) {
+        newSet.delete(barbarism);
+      } else {
+        newSet.add(barbarism);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedItems.size === correctedPendingItems.length) {
+      // All selected, deselect all
+      setSelectedItems(new Set());
+    } else {
+      // Select all
+      setSelectedItems(new Set(correctedPendingItems.map(i => i.barbarism)));
+    }
   };
 
   const getResultMessage = () => {
@@ -74,7 +104,13 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
   }, []);
 
   const handleRegisterCorrected = () => {
-    markManyAsDone(correctedPendingItems.map(i => i.barbarism));
+    // Only mark selected items as done
+    const itemsToMark = correctedPendingItems
+      .filter(i => selectedItems.has(i.barbarism))
+      .map(i => i.barbarism);
+    if (itemsToMark.length > 0) {
+      markManyAsDone(itemsToMark);
+    }
     closeCorrectedDialog(true);
   };
 
@@ -149,6 +185,9 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
 
   // Show the corrected items dialog only when quiz is 100% complete (no failed items left)
   useEffect(() => {
+    // Don't show if already dismissed this session
+    if (dialogDismissed) return;
+    
     if (failedItemsCount === 0) {
       const corrected: QuizItem[] = [];
       const doneSet = getDoneItems();
@@ -165,11 +204,13 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
 
       if (corrected.length > 0) {
         setCorrectedPendingItems(corrected);
+        // Pre-select all items by default
+        setSelectedItems(new Set(corrected.map(i => i.barbarism)));
         setShowCorrectedDialog(true);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [failedItemsCount]);
+  }, [failedItemsCount, dialogDismissed]);
 
   const getOriginallyCorrectItems = () => {
     if (items[0]?.isPracticeItem) {
@@ -224,49 +265,81 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
   return (
     <div className="w-full max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden p-4 md:p-6">
 
-      {/* Dialog for orange (corrected) items */}
-      {showCorrectedDialog && correctedPendingItems.length > 0 && (
-        <div className={`modal-container bg-black/40 ${isExitingDialog ? 'exiting' : ''}`}>
-          <div className={`modal-content bg-white rounded-xl shadow-xl p-5 max-w-sm w-full ${isExitingDialog ? 'exiting' : ''}`}>
-            <div className="flex items-center gap-2 mb-3">
-              <Squircle className="text-amber-500 flex-shrink-0" size={22} />
-              <h3 className="text-base font-semibold text-gray-800">
-                Registrar com a fets?
-              </h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-3">
-              Has corregit {correctedPendingItems.length} element{correctedPendingItems.length > 1 ? 's' : ''} després de fallar:
-            </p>
-            <ul className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 mb-4 space-y-1 max-h-36 overflow-y-auto">
-              {correctedPendingItems.map(item => (
-                <li key={item.barbarism} className="flex items-center gap-1.5">
-                  <Squircle size={12} className="flex-shrink-0" />
-                  <span className="font-medium">{item.barbarism}</span>
-                  <span className="text-gray-500">→ {item.correctForms[0]}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="text-xs text-gray-500 mb-4">
-              Si els marques com a fets, podràs filtrar-los al quiz i al full d'estudi.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleSkipCorrected}
-                className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-              >
-                Ometre
-              </button>
-              <button
-                onClick={handleRegisterCorrected}
-                className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors flex items-center justify-center gap-1.5"
-              >
-                <CheckSquare size={15} />
-                Marcar com a fets
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+  {/* Dialog for orange (corrected) items */}
+  {showCorrectedDialog && correctedPendingItems.length > 0 && (
+  <div className={`modal-container bg-black/40 ${isExitingDialog ? 'exiting' : ''}`}>
+  <div className={`modal-content bg-white rounded-xl shadow-xl p-5 max-w-sm w-full ${isExitingDialog ? 'exiting' : ''}`}>
+  <div className="flex items-center gap-2 mb-3">
+  <Squircle className="text-amber-500 flex-shrink-0" size={22} />
+  <h3 className="text-base font-semibold text-gray-800">
+  Registrar com a fets?
+  </h3>
+  </div>
+  <p className="text-sm text-gray-600 mb-2">
+  Has corregit {correctedPendingItems.length} element{correctedPendingItems.length > 1 ? 's' : ''} després de fallar. Selecciona quins vols marcar:
+  </p>
+  
+  {/* Select all / Deselect all button */}
+  <button
+    onClick={toggleSelectAll}
+    className="text-xs text-amber-600 hover:text-amber-700 mb-2 flex items-center gap-1"
+  >
+    {selectedItems.size === correctedPendingItems.length ? (
+      <>
+        <Square size={12} />
+        Desseleccionar tots
+      </>
+    ) : (
+      <>
+        <CheckSquare size={12} />
+        Seleccionar tots
+      </>
+    )}
+  </button>
+  
+  <ul className="text-sm text-amber-700 bg-amber-50 rounded-lg p-3 mb-4 space-y-2 max-h-48 overflow-y-auto">
+  {correctedPendingItems.map(item => (
+  <li 
+    key={item.barbarism} 
+    className="flex items-center gap-2 cursor-pointer hover:bg-amber-100 rounded p-1 -m-1"
+    onClick={() => toggleItemSelection(item.barbarism)}
+  >
+    {selectedItems.has(item.barbarism) ? (
+      <CheckSquare size={16} className="flex-shrink-0 text-yellow-500" />
+    ) : (
+      <Square size={16} className="flex-shrink-0 text-gray-400" />
+    )}
+    <span className="font-medium">{item.barbarism}</span>
+    <span className="text-gray-500">→ {item.correctForms[0]}</span>
+  </li>
+  ))}
+  </ul>
+  <p className="text-xs text-gray-500 mb-4">
+  Si els marques com a fets, podràs filtrar-los al quiz i al full d'estudi.
+  </p>
+  <div className="flex gap-3">
+  <button
+  onClick={handleSkipCorrected}
+  className="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+  >
+  No guardar
+  </button>
+  <button
+  onClick={handleRegisterCorrected}
+  disabled={selectedItems.size === 0}
+  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-1.5 ${
+    selectedItems.size === 0 
+      ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+      : 'bg-green-600 text-white hover:bg-green-700'
+  }`}
+  >
+  <CheckSquare size={15} />
+  Guardar {selectedItems.size > 0 ? `(${selectedItems.size})` : ''}
+  </button>
+  </div>
+  </div>
+  </div>
+  )}
 
       <div className="text-left md:text-center mb-8">
         <h2 className="text-2xl font-bold text-gray-800 mb-2">Resultats del Quiz</h2>
