@@ -305,7 +305,7 @@ export function QuizResults({ items, answers, score, onRestart }: QuizResultsPro
     onClick={() => toggleItemSelection(item.barbarism)}
   >
     {selectedItems.has(item.barbarism) ? (
-      <CheckSquare size={16} className="flex-shrink-0 text-green-600" />
+      <CheckSquare size={16} className="flex-shrink-0 text-yellow-500" />
     ) : (
       <Square size={16} className="flex-shrink-0 text-gray-400" />
     )}

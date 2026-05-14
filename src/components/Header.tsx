@@ -140,7 +140,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
   const validateEmail = (value: string): boolean => {
     if (!cloudSync.validateEmail(value)) {
-      setEmailError('Format: XXXXXXXX.santignasi@fje.edu (max 8 chars)');
+      setEmailError('Format: 12345678901.santignasi@fje.edu (màx 11 dígits)');
       return false;
     }
     setEmailError('');
@@ -522,12 +522,28 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                             type="text"
                             value={email}
                             onChange={(e) => {
-                              setEmail(e.target.value.toLowerCase());
+                              const raw = e.target.value;
+                              // Allow only digits before the dot, then the fixed suffix
+                              // If user is typing the suffix, keep it; otherwise filter prefix to digits only
+                              const suffix = '.santignasi@fje.edu';
+                              let processed: string;
+                              if (raw.includes('.')) {
+                                // Split at first dot: prefix must be digits only (max 11)
+                                const dotIdx = raw.indexOf('.');
+                                const prefix = raw.slice(0, dotIdx).replace(/\D/g, '').slice(0, 11);
+                                const rest = raw.slice(dotIdx);
+                                // If they typed more than the known suffix, trim it
+                                processed = prefix + (rest.startsWith(suffix) ? suffix : rest);
+                              } else {
+                                // Only digits so far (no dot yet), max 11
+                                processed = raw.replace(/\D/g, '').slice(0, 11);
+                              }
+                              setEmail(processed);
                               setLoginError(null);
-                              if (emailError) validateEmail(e.target.value.toLowerCase());
+                              if (emailError) validateEmail(processed);
                             }}
                             onKeyDown={(e) => { if (e.key === 'Enter' && email && !isSyncing) handleLogin(); }}
-                            placeholder="12345678.santignasi@fje.edu"
+                            placeholder="12345678901.santignasi@fje.edu"
                             className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 ${emailError || loginError ? 'border-red-500' : 'border-gray-300'}`}
                             autoFocus
                           />
