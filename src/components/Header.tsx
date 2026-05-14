@@ -517,7 +517,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                   </button>
 
                   {(showLoginForm || isExitingLoginForm) && (
-                    <div className={`dropdown-panel absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingLoginForm ? ' exiting' : ''}`}>
+                    <div className={`dropdown-panel absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingLoginForm ? ' exiting' : ''}`}>
                       <p className="text-sm font-semibold text-gray-800 mb-3">Iniciar sessió</p>
                       <div className="space-y-3">
                         <div>
@@ -527,24 +527,9 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                             value={email}
                             onChange={(e) => {
                               const raw = e.target.value;
-                              // Allow only digits before the dot, then the fixed suffix
-                              // If user is typing the suffix, keep it; otherwise filter prefix to digits only
-                              const suffix = '.santignasi@fje.edu';
-                              let processed: string;
-                              if (raw.includes('.')) {
-                                // Split at first dot: prefix must be digits only (max 11)
-                                const dotIdx = raw.indexOf('.');
-                                const prefix = raw.slice(0, dotIdx).replace(/\D/g, '').slice(0, 11);
-                                const rest = raw.slice(dotIdx);
-                                // If they typed more than the known suffix, trim it
-                                processed = prefix + (rest.startsWith(suffix) ? suffix : rest);
-                              } else {
-                                // Only digits so far (no dot yet), max 11
-                                processed = raw.replace(/\D/g, '').slice(0, 11);
-                              }
-                              setEmail(processed);
+                              setEmail(raw);
                               setLoginError(null);
-                              if (emailError) validateEmail(processed);
+                              if (emailError) setEmailError('');
                             }}
                             onKeyDown={(e) => { if (e.key === 'Enter' && email && !isSyncing) handleLogin(); }}
                             placeholder="12345678901.santignasi@fje.edu"
@@ -618,7 +603,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                   </button>
 
                   {(showUserMenu || isExitingUserMenu) && (
-                    <div className={`dropdown-panel absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingUserMenu ? ' exiting' : ''}`}>
+                    <div className={`dropdown-panel absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingUserMenu ? ' exiting' : ''}`}>
                       <p className="text-sm font-semibold text-gray-800 mb-3">{currentUser}</p>
                       <div className="space-y-1">
                         {/* Live sync row — left zone: sync now / right zone: toggle */}

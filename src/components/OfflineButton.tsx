@@ -867,7 +867,17 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
       <div ref={dropdownRef} className="relative">
         {/* Trigger — fons lleuger del color semàntic, sense vora */}
         <button
-          onClick={() => setShowDropdown(v => !v)}
+          onClick={() => {
+            if (showDropdown) {
+              setIsExitingDropdown(true);
+              setTimeout(() => {
+                setShowDropdown(false);
+                setIsExitingDropdown(false);
+              }, 200);
+            } else {
+              setShowDropdown(true);
+            }
+          }}
           className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium ${triggerBg} ${isInstalling ? 'animate-pulse' : ''}`}
           aria-label="Estat de la instal·lació"
         >
@@ -878,7 +888,7 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
         {/* Dropdown — stop propagation on inner clicks so it stays open */}
         {(showDropdown || isExitingDropdown) && (
           <div
-            className={`dropdown-panel absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingDropdown ? ' exiting' : ''}`}
+            className={`dropdown-panel absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingDropdown ? ' exiting' : ''}`}
             onClick={e => e.stopPropagation()}
           >
             <p className="text-sm font-semibold text-gray-800 mb-3">Aplicació</p>
