@@ -29,6 +29,7 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isExitingDropdown, setIsExitingDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Close dropdown when clicking outside
@@ -36,7 +37,11 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
     if (!showDropdown) return;
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
+        setIsExitingDropdown(true);
+        setTimeout(() => {
+          setShowDropdown(false);
+          setIsExitingDropdown(false);
+        }, 200);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -871,9 +876,9 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
         </button>
 
         {/* Dropdown — stop propagation on inner clicks so it stays open */}
-        {showDropdown && (
+        {(showDropdown || isExitingDropdown) && (
           <div
-            className="dropdown-panel absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50"
+            className={`dropdown-panel absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingDropdown ? ' exiting' : ''}`}
             onClick={e => e.stopPropagation()}
           >
             <p className="text-sm font-semibold text-gray-800 mb-3">Aplicació</p>
