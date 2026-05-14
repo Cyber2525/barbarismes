@@ -2,7 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowRight, Check, CircleAlert, Download, RefreshCw, Timer, Trash2, Wifi, WifiOff, X } from 'lucide-react';
 import { SwipeToConfirm } from './SwipeToConfirm';
 
-export function OfflineButton() {
+interface OfflineButtonProps {
+  compact?: boolean;
+}
+
+export function OfflineButton({ compact = false }: OfflineButtonProps) {
   const [isInstalled, setIsInstalled] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [isInstalling, setIsInstalling] = useState(false);
@@ -633,82 +637,172 @@ export function OfflineButton() {
     };
   }, [showUninstallConfirm]);
   
+  // ---- COMPACT MODE (header) ----
+  if (compact) {
+    const statusColor = isOffline
+      ? isInstalled ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+      : isInstalled ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700';
+
+    const StatusIcon = isOffline ? WifiOff : Wifi;
+
+    return (
+      <div className="flex items-center gap-2">
+        {/* Compact status pill */}
+        <div className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${statusColor}`}>
+          <StatusIcon size={13} />
+          <span>{isOffline ? 'Sense connexió' : isInstalled ? 'Offline actiu' : 'En línia'}</span>
+        </div>
+
+        {/* Compact action button */}
+        {isInstalled && !isInstalling ? (
+          <button
+            onClick={() => setShowUninstallConfirm(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-all"
+            aria-label="Desinstalar aplicació"
+          >
+            <Trash2 size={13} />
+            <span className="hidden sm:inline">Desinstalar</span>
+          </button>
+        ) : (
+          <button
+            onClick={installServiceWorker}
+            disabled={isInstalling || isOffline}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+              isOffline
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : isInstalling
+                  ? 'bg-yellow-500 text-white animate-pulse'
+                  : updateAvailable
+                    ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+            aria-label="Instal·lar aplicació"
+          >
+            {isInstalling
+              ? <RefreshCw size={13} className="animate-spin" />
+              : updateAvailable
+                ? <CircleAlert size={13} className="animate-pulse" />
+                : <Download size={13} />}
+            <span className="hidden sm:inline">
+              {isInstalling
+                ? (cachingProgress >= 95 ? 'Finalitzant...' : updateAvailable ? 'Actualitzant...' : 'Instal·lant...')
+                : updateAvailable ? 'Actualitzar' : 'Instal·lar'}
+            </span>
+          </button>
+        )}
+
+        {/* Error tooltip */}
+        {installationError && (
+          <div className="absolute top-14 right-4 z-50 px-3 py-2 text-xs rounded-lg bg-red-100 text-red-700 shadow flex items-center gap-1.5 max-w-xs">
+            <CircleAlert size={13} />
+            <span>{installationError}</span>
+          </div>
+        )}
+
+        {/* Uninstall modal (shared between compact and full) */}
+        {showUninstallConfirm && (
+          <div className={`modal-container bg-black bg-opacity-60 p-4 ${isExitingModal ? 'exiting' : ''}`}>
+            <div className={`modal-content bg-white rounded-lg p-6 ${isMobile ? 'max-w-md' : 'max-w-xs'} w-full shadow-xl ${isExitingModal ? 'exiting' : ''}`}>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-red-800">Confirmar desinstal·lació</h3>
+                <button onClick={handleCloseModal} className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors" aria-label="Tancar">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="mb-6">
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
+                  <p className="font-medium">Atenció!</p>
+                  <p className="text-sm">Aquesta acció eliminarà el mode offline i no podràs utilitzar l&apos;aplicació sense connexió a internet.</p>
+                </div>
+                {isMobile ? (
+                  <>
+                    <p className="text-sm font-medium text-red-800 mb-3">Llisca fins al final per confirmar que vols desinstal·lar el mode offline</p>
+                    <div className="relative h-12 bg-gray-100 rounded-lg mt-3 overflow-hidden">
+                      {!swipeComplete ? (
+                        <SwipeToConfirm onSwipeProgress={setSwipeProgress} onSwipeComplete={handleSwipeComplete} />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center bg-red-500 text-white">
+                          <Check size={20} className="mr-2" />
+                          <span className="font-medium">Confirmat</span>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center my-4">
+                    <p className="text-sm font-medium text-red-800 mb-4">Espera {countdownValue} segons per confirmar que vols desinstal·lar el mode offline</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-3 justify-between">
+                <button onClick={handleCloseModal} className="py-2 px-5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">Cancel·lar</button>
+                <button
+                  onClick={uninstallOfflineMode}
+                  disabled={!swipeComplete}
+                  className={`py-2 px-5 rounded-lg transition-all duration-300 flex items-center gap-2 ${swipeComplete ? 'bg-red-600 hover:bg-red-700 text-white shadow-md' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                >
+                  {!isMobile && !swipeComplete ? (
+                    <><Timer size={16} className="animate-pulse" /><span>Espera ({countdownValue}s)</span></>
+                  ) : (
+                    <><Trash2 size={16} /><span>Confirmar</span></>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ---- FULL MODE (legacy, kept for fallback) ----
   return (
     <div className="w-full max-w-4xl mx-auto mt-8">
       <div className="flex flex-col items-center">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-lg shadow-md p-5 mb-4">
             <div className="flex flex-col items-center gap-4">
-              {/* Status Indicator - Now at the top */}
+              {/* Status Indicator */}
               <div className={`w-full px-5 py-3 text-sm rounded-lg flex items-center justify-center gap-2 ${
                 isOffline 
-                  ? isInstalled
-                    ? 'bg-amber-100 text-amber-700' // Yellow: Offline + Downloaded
-                    : 'bg-red-100 text-red-700'     // Red: Offline + Not Downloaded
-                  : isInstalled 
-                    ? 'bg-green-100 text-green-700' // Green: Online + Downloaded
-                    : 'bg-blue-100 text-blue-700'   // Blue: Online + Not Downloaded
+                  ? isInstalled ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
+                  : isInstalled ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
               }`}>
                 {isOffline ? (
-                  <>
-                    <WifiOff size={18} />
-                    <span className="font-medium">
-                      Sense conexió - {isInstalled ? 'Disponible offline' : 'No instalada'}
-                    </span>
-                  </>
+                  <><WifiOff size={18} /><span className="font-medium">Sense conexió - {isInstalled ? 'Disponible offline' : 'No instalada'}</span></>
                 ) : (
-                  <>
-                    <Wifi size={18} />
-                    <span className="font-medium">
-                      Amb conexió - {isInstalled ? 'Disponible offline' : 'No instalada'}
-                    </span>
-                  </>
+                  <><Wifi size={18} /><span className="font-medium">Amb conexió - {isInstalled ? 'Disponible offline' : 'No instalada'}</span></>
                 )}
               </div>
               
-              {/* Install/Uninstall Button - Now below the status indicator */}
+              {/* Install/Uninstall Button */}
               {isInstalled && !isInstalling ? (
-                <>
-                  {/* Uninstall button - only shown when not updating */}
-                  <button
-                    onClick={() => setShowUninstallConfirm(true)}
-                    className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all"
-                  >
-                    <Trash2 size={18} />
-                    <span className="font-medium">Desinstalar aplicació</span>
-                  </button>
-                </>
+                <button
+                  onClick={() => setShowUninstallConfirm(true)}
+                  className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all"
+                >
+                  <Trash2 size={18} />
+                  <span className="font-medium">Desinstalar aplicació</span>
+                </button>
               ) : (
                 <button
                   onClick={installServiceWorker}
                   disabled={isInstalling || isOffline}
                   className={`w-full flex items-center justify-center gap-2 px-5 py-3 rounded-lg transition-all ${
-                    isOffline 
-                      ? "bg-gray-400 text-white cursor-not-allowed" 
-                      : isInstalling 
-                        ? "bg-yellow-500 text-white animate-pulse" 
-                        : updateAvailable
-                          ? "bg-yellow-500 text-white hover:bg-yellow-600"
-                          : "bg-blue-600 text-white hover:bg-blue-700"
+                    isOffline ? "bg-gray-400 text-white cursor-not-allowed"
+                      : isInstalling ? "bg-yellow-500 text-white animate-pulse"
+                      : updateAvailable ? "bg-yellow-500 text-white hover:bg-yellow-600"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
                   }`}
                 >
                   {isInstalling ? <RefreshCw size={18} className="animate-spin" /> : updateAvailable ? <CircleAlert size={18} className="animate-pulse" /> : <Download size={18} />}
                   <span className="font-medium">
-                    {isInstalling
-                      ? (cachingProgress >= 95
-                          ? "Finalitzant..."
-                          : updateAvailable 
-                            ? "Actualitzant..."
-                            : "Instal·lant...")
-                      : updateAvailable 
-                        ? 'Actualització disponible' 
-                        : 'Instal·lar aplicació'}
+                    {isInstalling ? (cachingProgress >= 95 ? "Finalitzant..." : updateAvailable ? "Actualitzant..." : "Instal·lant...") : updateAvailable ? 'Actualització disponible' : 'Instal·lar aplicació'}
                   </span>
                 </button>
               )}
             </div>
             
-            {/* Error message */}
             {installationError && (
               <div className="mt-3 px-4 py-2 text-sm rounded-md bg-red-100 text-red-700 flex items-center gap-2">
                 <CircleAlert size={16} />

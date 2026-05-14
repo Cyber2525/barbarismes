@@ -279,6 +279,7 @@ export function App() {
                 <p className="text-sm md:text-base text-red-600 text-left">Aprèn català amb les nostres eines</p>
               </div>
             </div>
+            <OfflineButton compact />
           </div>
           
           {/* App Section Selector */}
@@ -398,7 +399,6 @@ export function App() {
         </main>
 
         <footer className="text-center mt-8 md:mt-12 flex flex-col items-center">
-          <OfflineButton />
           <p className="mt-4 text-sm text-red-400 text-left md:text-center">© 2026 Estudiar Català CSI - Colegio Sant Ignacio - El 10, hecho posible por VICTOR DE NADAL</p>
         </footer>
       </div>
