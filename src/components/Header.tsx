@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { IOSToggle } from './IOSToggle';
 import { OfflineButton } from './OfflineButton';
 import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload, Radio } from 'lucide-react';
@@ -38,44 +38,40 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [isExitingUserMenu, setIsExitingUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
-  // Dynamic edge detection offsets for dropdown panels
-  const [loginPanelOffsetX, setLoginPanelOffsetX] = useState(0);
-  const [userMenuPanelOffsetX, setUserMenuPanelOffsetX] = useState(0);
-  const loginPanelRef = useRef<HTMLDivElement>(null);
-  const userMenuPanelRef = useRef<HTMLDivElement>(null);
+  // Dynamic edge-collision: wrapper divs sit at right-0, shifted by translateX only when they clip the left edge
+  const loginWrapperRef = useRef<HTMLDivElement>(null);
+  const userMenuWrapperRef = useRef<HTMLDivElement>(null);
+  const [loginShift, setLoginShift] = useState(0);
+  const [userMenuShift, setUserMenuShift] = useState(0);
 
-  useEffect(() => {
-    if (!showLoginForm) { setLoginPanelOffsetX(0); return; }
+  useLayoutEffect(() => {
+    if (!showLoginForm) { setLoginShift(0); return; }
     const adjust = () => {
-      const el = loginPanelRef.current;
+      const el = loginWrapperRef.current;
       if (!el) return;
+      el.style.transform = 'none';
       const rect = el.getBoundingClientRect();
       const margin = 8;
-      let delta = 0;
-      if (rect.left < margin) delta = margin - rect.left;
-      else if (rect.right > window.innerWidth - margin) delta = window.innerWidth - margin - rect.right;
-      if (delta !== 0) setLoginPanelOffsetX(prev => prev + delta);
+      setLoginShift(rect.left < margin ? margin - rect.left : 0);
     };
-    adjust();
+    const frame = requestAnimationFrame(adjust);
     window.addEventListener('resize', adjust);
-    return () => window.removeEventListener('resize', adjust);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', adjust); };
   }, [showLoginForm]);
 
-  useEffect(() => {
-    if (!showUserMenu) { setUserMenuPanelOffsetX(0); return; }
+  useLayoutEffect(() => {
+    if (!showUserMenu) { setUserMenuShift(0); return; }
     const adjust = () => {
-      const el = userMenuPanelRef.current;
+      const el = userMenuWrapperRef.current;
       if (!el) return;
+      el.style.transform = 'none';
       const rect = el.getBoundingClientRect();
       const margin = 8;
-      let delta = 0;
-      if (rect.left < margin) delta = margin - rect.left;
-      else if (rect.right > window.innerWidth - margin) delta = window.innerWidth - margin - rect.right;
-      if (delta !== 0) setUserMenuPanelOffsetX(prev => prev + delta);
+      setUserMenuShift(rect.left < margin ? margin - rect.left : 0);
     };
-    adjust();
+    const frame = requestAnimationFrame(adjust);
     window.addEventListener('resize', adjust);
-    return () => window.removeEventListener('resize', adjust);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', adjust); };
   }, [showUserMenu]);
 
   // Import state
@@ -558,10 +554,11 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
                   {(showLoginForm || isExitingLoginForm) && (
                     <div
-                      ref={loginPanelRef}
-                      className={`dropdown-panel absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingLoginForm ? ' exiting' : ''}`}
-                      style={loginPanelOffsetX ? { marginLeft: `${loginPanelOffsetX}px` } : undefined}
+                      ref={loginWrapperRef}
+                      className="absolute top-full right-0 mt-2 z-50"
+                      style={loginShift ? { transform: `translateX(${loginShift}px)` } : undefined}
                     >
+                    <div className={`dropdown-panel w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4${isExitingLoginForm ? ' exiting' : ''}`}>
                       <p className="text-sm font-semibold text-gray-800 mb-3">Iniciar sessió</p>
                       <div className="space-y-3">
                         <div>
@@ -592,6 +589,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                           Entrar
                         </button>
                       </div>
+                    </div>
                     </div>
                   )}
                 </div>
@@ -648,10 +646,11 @@ export function Header({ onProgressUpdate }: HeaderProps) {
 
                   {(showUserMenu || isExitingUserMenu) && (
                     <div
-                      ref={userMenuPanelRef}
-                      className={`dropdown-panel absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingUserMenu ? ' exiting' : ''}`}
-                      style={userMenuPanelOffsetX ? { marginLeft: `${userMenuPanelOffsetX}px` } : undefined}
+                      ref={userMenuWrapperRef}
+                      className="absolute top-full right-0 mt-2 z-50"
+                      style={userMenuShift ? { transform: `translateX(${userMenuShift}px)` } : undefined}
                     >
+                    <div className={`dropdown-panel w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4${isExitingUserMenu ? ' exiting' : ''}`}>
                       <p className="text-sm font-semibold text-gray-800 mb-3">{currentUser}</p>
                       <div className="space-y-1">
                         {/* Live sync row — left zone: sync now / right zone: toggle */}
@@ -715,6 +714,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                           Tancar sessió
                         </button>
                       </div>
+                    </div>
                     </div>
                   )}
                 </div>

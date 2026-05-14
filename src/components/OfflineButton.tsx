@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowRight, Check, CircleAlert, Download, RefreshCw, Timer, Trash2, Wifi, WifiOff } from 'lucide-react';
 import { SwipeToConfirm } from './SwipeToConfirm';
@@ -30,29 +30,24 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isExitingDropdown, setIsExitingDropdown] = useState(false);
-  const [dropdownOffsetX, setDropdownOffsetX] = useState(0);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const [dropdownShift, setDropdownShift] = useState(0);
+  const dropdownWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  // Dynamic edge detection: push the dropdown inward only if it overflows the viewport
-  useEffect(() => {
-    if (!showDropdown) {
-      setDropdownOffsetX(0);
-      return;
-    }
+  // Dynamic edge-collision: wrapper stays at right-0, but gets translateX'd to avoid clipping
+  useLayoutEffect(() => {
+    if (!showDropdown) { setDropdownShift(0); return; }
     const adjust = () => {
-      const el = dropdownRef.current;
+      const el = dropdownWrapperRef.current;
       if (!el) return;
-      // Measure relative to current offset to compute the correction
+      el.style.transform = 'none';
       const rect = el.getBoundingClientRect();
       const margin = 8;
-      let delta = 0;
-      if (rect.left < margin) delta = margin - rect.left;
-      else if (rect.right > window.innerWidth - margin) delta = window.innerWidth - margin - rect.right;
-      if (delta !== 0) setDropdownOffsetX(prev => prev + delta);
+      if (rect.left < margin) setDropdownShift(margin - rect.left);
+      else setDropdownShift(0);
     };
-    adjust();
+    const frame = requestAnimationFrame(adjust);
     window.addEventListener('resize', adjust);
-    return () => window.removeEventListener('resize', adjust);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', adjust); };
   }, [showDropdown]);
 
   // Close dropdown when clicking outside
@@ -911,8 +906,12 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
         {/* Dropdown — stop propagation on inner clicks so it stays open */}
         {(showDropdown || isExitingDropdown) && (
           <div
-            className={`dropdown-panel absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingDropdown ? ' exiting' : ''}`}
-            style={dropdownOffsetX ? { marginLeft: `${dropdownOffsetX}px` } : undefined}
+            ref={dropdownWrapperRef}
+            className="absolute top-full right-0 mt-2 z-50"
+            style={dropdownShift ? { transform: `translateX(${dropdownShift}px)` } : undefined}
+          >
+          <div
+            className={`dropdown-panel w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4${isExitingDropdown ? ' exiting' : ''}`}
             onClick={e => e.stopPropagation()}
           >
             <p className="text-sm font-semibold text-gray-800 mb-3">Aplicació</p>
@@ -935,6 +934,7 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
             {installationError && (
               <p className="text-xs text-red-500 mt-2 text-center">{installationError}</p>
             )}
+          </div>
           </div>
         )}
 
