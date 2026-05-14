@@ -517,7 +517,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                   </button>
 
                   {(showLoginForm || isExitingLoginForm) && (
-                    <div className={`dropdown-panel absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingLoginForm ? ' exiting' : ''}`}>
+                    <div className={`dropdown-panel absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingLoginForm ? ' exiting' : ''}`}>
                       <p className="text-sm font-semibold text-gray-800 mb-3">Iniciar sessió</p>
                       <div className="space-y-3">
                         <div>
@@ -603,7 +603,7 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                   </button>
 
                   {(showUserMenu || isExitingUserMenu) && (
-                    <div className={`dropdown-panel absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingUserMenu ? ' exiting' : ''}`}>
+                    <div className={`dropdown-panel absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingUserMenu ? ' exiting' : ''}`}>
                       <p className="text-sm font-semibold text-gray-800 mb-3">{currentUser}</p>
                       <div className="space-y-1">
                         {/* Live sync row — left zone: sync now / right zone: toggle */}

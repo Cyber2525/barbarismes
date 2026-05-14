@@ -888,7 +888,7 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
         {/* Dropdown — stop propagation on inner clicks so it stays open */}
         {(showDropdown || isExitingDropdown) && (
           <div
-            className={`dropdown-panel absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingDropdown ? ' exiting' : ''}`}
+            className={`dropdown-panel absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingDropdown ? ' exiting' : ''}`}
             onClick={e => e.stopPropagation()}
           >
             <p className="text-sm font-semibold text-gray-800 mb-3">Aplicació</p>
