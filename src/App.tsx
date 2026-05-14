@@ -11,7 +11,6 @@ import { GameSettingsWidget } from './components/GameSettingsWidget';
 import { StudySheet } from './components/StudySheet';
 import { DialectStudySheet } from './components/DialectStudySheet';
 import { DialectQuiz } from './components/DialectQuiz';
-import { OfflineButton } from './components/OfflineButton';
 import { Header } from './components/Header';
 import { markAsDone, getDoneItems } from './utils/doneItems';
 import { BookOpen, Globe, Languages, Pencil } from 'lucide-react';
@@ -430,7 +429,6 @@ export function App() {
         </main>
 
         <footer className="text-center mt-8 md:mt-12 flex flex-col items-center">
-          <OfflineButton />
           <p className="mt-4 text-sm text-red-400 text-left md:text-center">Català CSI - Por Víctor De Nadal - Colegio San Ignacio (CSI) Barcelona</p>
         </footer>
       </div>
