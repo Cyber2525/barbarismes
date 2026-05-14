@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowRight, Check, CircleAlert, Download, RefreshCw, Timer, Trash2, Wifi, WifiOff, X } from 'lucide-react';
+import { ArrowRight, Check, CircleAlert, Download, RefreshCw, Timer, Trash2, Wifi, WifiOff } from 'lucide-react';
 import { SwipeToConfirm } from './SwipeToConfirm';
 
 // Installation status enum for clarity
@@ -906,71 +906,56 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
 
         {/* Uninstall Confirmation Modal — rendered via portal so it escapes the header */}
         {showUninstallConfirm && createPortal(
-          <div className={`modal-container bg-black bg-opacity-60 p-4 ${isExitingModal ? 'exiting' : ''}`}>
-            <div className={`modal-content bg-white rounded-lg p-6 ${isMobile ? 'max-w-md' : 'max-w-xs'} w-full shadow-xl ${isExitingModal ? 'exiting' : ''}`}>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-red-800">Confirmar desinstal·lació</h3>
-                <button
-                  onClick={handleCloseModal}
-                  className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors"
-                  aria-label="Tancar"
-                >
-                  <X size={20} />
-                </button>
-              </div>
+          <div className={`modal-container bg-black/50 ${isExitingModal ? 'exiting' : ''}`}>
+            <div className={`modal-content bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 ${isExitingModal ? 'exiting' : ''}`}>
+              <h3 className="text-base font-semibold text-red-600 mb-2">Desinstal·lar aplicació</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Eliminarà el mode offline. No podràs utilitzar l&apos;aplicació sense connexió a internet.
+              </p>
 
-              <div className="mb-6">
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
-                  <p className="font-medium">Atenció!</p>
-                  <p className="text-sm">Aquesta acció eliminarà el mode offline i no podràs utilitzar l&apos;aplicació sense connexió a internet.</p>
-                </div>
-
+              <div className="space-y-3">
+                {/* Confirmation control — swipe on mobile, timer on desktop */}
                 {isMobile ? (
-                  <div className="relative h-12 bg-gray-100 rounded-lg mt-3 overflow-hidden">
+                  <div className="relative h-11 bg-gray-100 rounded-lg overflow-hidden">
                     {!swipeComplete ? (
                       <SwipeToConfirm
                         onSwipeProgress={setSwipeProgress}
                         onSwipeComplete={handleSwipeComplete}
                       />
                     ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-red-500 text-white">
-                        <Check size={20} className="mr-2" />
-                        <span className="font-medium">Confirmat</span>
+                      <div className="absolute inset-0 flex items-center justify-center bg-red-600 text-white">
+                        <Check size={16} className="mr-1.5" />
+                        <span className="text-sm font-medium">Confirmat</span>
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="text-center my-4" />
-                )}
-              </div>
+                ) : null}
 
-              <div className="flex gap-3 justify-between">
-                <button
-                  onClick={handleCloseModal}
-                  className="py-2 px-5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors focus:ring-2 focus:ring-gray-300 focus:outline-none"
-                >
-                  Cancel·lar
-                </button>
+                {/* Confirm button */}
                 <button
                   onClick={uninstallOfflineMode}
                   disabled={!swipeComplete}
-                  className={`py-2 px-5 rounded-lg transition-all duration-300 flex items-center gap-2 ${
-                    swipeComplete
-                      ? 'bg-red-600 hover:bg-red-700 text-white shadow-md focus:ring-2 focus:ring-red-300 focus:outline-none'
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  }`}
+                  className="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm transition-colors"
                 >
                   {!isMobile && !swipeComplete ? (
                     <>
-                      <Timer size={16} className="animate-pulse" />
-                      <span>Espera ({countdownValue}s)</span>
+                      <Timer size={15} className="animate-pulse" />
+                      Espera {countdownValue}s
                     </>
                   ) : (
                     <>
-                      <Trash2 size={16} />
-                      <span>Confirmar</span>
+                      <Trash2 size={15} />
+                      Desinstal·lar
                     </>
                   )}
+                </button>
+
+                {/* Cancel */}
+                <button
+                  onClick={handleCloseModal}
+                  className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 text-sm transition-colors"
+                >
+                  Cancel·lar
                 </button>
               </div>
             </div>
@@ -1087,79 +1072,53 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
       
       {/* Uninstall Confirmation Modal */}
       {showUninstallConfirm && (
-        <div className={`modal-container bg-black bg-opacity-60 p-4 ${isExitingModal ? 'exiting' : ''}`}>
-          <div className={`modal-content bg-white rounded-lg p-6 ${isMobile ? 'max-w-md' : 'max-w-xs'} w-full shadow-xl ${isExitingModal ? 'exiting' : ''}`}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-red-800">Confirmar desinstal·lació</h3>
-              <button 
-                onClick={handleCloseModal}
-                className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors"
-                aria-label="Tancar"
-              >
-                <X size={20} />
-              </button>
-            </div>
-            
-            
-            
-            <div className="mb-6">
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
-                <p className="font-medium">Atenció!</p>
-                <p className="text-sm">Aquesta acció eliminarà el mode offline i no podràs utilitzar l'aplicació sense connexió a internet.</p>
-              </div>
-              
+        <div className={`modal-container bg-black/50 ${isExitingModal ? 'exiting' : ''}`}>
+          <div className={`modal-content bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 ${isExitingModal ? 'exiting' : ''}`}>
+            <h3 className="text-base font-semibold text-red-600 mb-2">Desinstal·lar aplicació</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Eliminarà el mode offline. No podràs utilitzar l&apos;aplicació sense connexió a internet.
+            </p>
+
+            <div className="space-y-3">
               {isMobile ? (
-                <>
-                  {/* Swipe to confirm component (mobile only) */}
-                  <div className="relative h-12 bg-gray-100 rounded-lg mt-3 overflow-hidden">
-                    {/* Swipeable element */}
-                    {!swipeComplete ? (
-                      <SwipeToConfirm 
-                        onSwipeProgress={setSwipeProgress} 
-                        onSwipeComplete={handleSwipeComplete}
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-red-500 text-white">
-                        <Check size={20} className="mr-2" />
-                        <span className="font-medium">Confirmat</span>
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                /* Desktop countdown - simplified with just a message */
-                <div className="text-center my-4">
+                <div className="relative h-11 bg-gray-100 rounded-lg overflow-hidden">
+                  {!swipeComplete ? (
+                    <SwipeToConfirm
+                      onSwipeProgress={setSwipeProgress}
+                      onSwipeComplete={handleSwipeComplete}
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-red-600 text-white">
+                      <Check size={16} className="mr-1.5" />
+                      <span className="text-sm font-medium">Confirmat</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            
-            <div className="flex gap-3 justify-between">
-              <button
-                onClick={handleCloseModal}
-                className="py-2 px-5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors focus:ring-2 focus:ring-gray-300 focus:outline-none"
-              >
-                Cancel·lar
-              </button>
+              ) : null}
+
               <button
                 onClick={uninstallOfflineMode}
                 disabled={!swipeComplete}
-                className={`py-2 px-5 rounded-lg transition-all duration-300 flex items-center gap-2 ${
-                  swipeComplete
-                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-md focus:ring-2 focus:ring-red-300 focus:outline-none'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
+                className="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm transition-colors"
               >
                 {!isMobile && !swipeComplete ? (
                   <>
-                    <Timer size={16} className="animate-pulse" />
-                    <span>Espera ({countdownValue}s)</span>
+                    <Timer size={15} className="animate-pulse" />
+                    Espera {countdownValue}s
                   </>
                 ) : (
                   <>
-                    <Trash2 size={16} />
-                    <span>{isMobile ? "Confirmar" : "Confirmar"}</span>
+                    <Trash2 size={15} />
+                    Desinstal·lar
                   </>
                 )}
+              </button>
+
+              <button
+                onClick={handleCloseModal}
+                className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 text-sm transition-colors"
+              >
+                Cancel·lar
               </button>
             </div>
           </div>
