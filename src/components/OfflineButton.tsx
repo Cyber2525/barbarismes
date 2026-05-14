@@ -732,74 +732,20 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
   if (compact) {
     const isChecking = installStatus === 'checking' || installStatus === 'unknown';
 
-    // ── Color logic — same semantic mapping as the original full card ─────
-    // checking/unknown → gray
-    // offline + not installed → red
-    // offline + installed    → amber/yellow
-    // online  + installed    → green
-    // online  + not installed→ blue
-    // installing (any)       → yellow pulsing
-
-    type ColorScheme = {
-      triggerBorder: string;
-      triggerText: string;
-      triggerBg: string;
-      wifiBg: string;
-      wifiBorder: string;
-      wifiText: string;
-      installBg: string;
-      installBorder: string;
-      installText: string;
-    };
-
-    const colors: ColorScheme = isChecking
-      ? {
-          triggerBorder: 'border-gray-300',
-          triggerText: 'text-gray-400',
-          triggerBg: 'hover:bg-gray-50',
-          wifiBg: 'bg-gray-100', wifiBorder: 'border-gray-200', wifiText: 'text-gray-600',
-          installBg: 'bg-gray-100', installBorder: 'border-gray-200', installText: 'text-gray-600',
-        }
+    // ── Trigger: fons lleuger del color semàntic ──────────────────────────
+    // checking → gris | installing → groc | offline+instalat → groc
+    // offline+no instalat → vermell | online+instalat → verd | online+no ins → blau
+    const triggerBg = isChecking
+      ? 'bg-gray-100 hover:bg-gray-200 text-gray-500'
       : isInstalling
-      ? {
-          triggerBorder: 'border-yellow-400',
-          triggerText: 'text-yellow-600',
-          triggerBg: 'hover:bg-yellow-50',
-          wifiBg: 'bg-blue-50', wifiBorder: 'border-blue-100', wifiText: 'text-blue-700',
-          installBg: 'bg-yellow-50', installBorder: 'border-yellow-200', installText: 'text-yellow-700',
-        }
+      ? 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700'
       : isOffline && isInstalled
-      ? {
-          triggerBorder: 'border-amber-400',
-          triggerText: 'text-amber-600',
-          triggerBg: 'hover:bg-amber-50',
-          wifiBg: 'bg-amber-50', wifiBorder: 'border-amber-200', wifiText: 'text-amber-700',
-          installBg: 'bg-amber-50', installBorder: 'border-amber-200', installText: 'text-amber-700',
-        }
-      : isOffline && !isInstalled
-      ? {
-          triggerBorder: 'border-red-300',
-          triggerText: 'text-red-500',
-          triggerBg: 'hover:bg-red-50',
-          wifiBg: 'bg-red-50', wifiBorder: 'border-red-100', wifiText: 'text-red-700',
-          installBg: 'bg-red-50', installBorder: 'border-red-100', installText: 'text-red-700',
-        }
+      ? 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700'
+      : isOffline
+      ? 'bg-red-100 hover:bg-red-200 text-red-600'
       : isInstalled
-      ? {
-          triggerBorder: 'border-green-400',
-          triggerText: 'text-green-600',
-          triggerBg: 'hover:bg-green-50',
-          wifiBg: 'bg-blue-50', wifiBorder: 'border-blue-100', wifiText: 'text-blue-700',
-          installBg: 'bg-green-50', installBorder: 'border-green-200', installText: 'text-green-700',
-        }
-      : {
-          // online, not installed — blue CTA
-          triggerBorder: 'border-blue-400',
-          triggerText: 'text-blue-600',
-          triggerBg: 'hover:bg-blue-50',
-          wifiBg: 'bg-blue-50', wifiBorder: 'border-blue-100', wifiText: 'text-blue-700',
-          installBg: 'bg-gray-50', installBorder: 'border-gray-200', installText: 'text-gray-500',
-        };
+      ? 'bg-green-100 hover:bg-green-200 text-green-700'
+      : 'bg-blue-100 hover:bg-blue-200 text-blue-700';
 
     // ── Trigger icon + label ──────────────────────────────────────────────
     const triggerIcon = isChecking ? (
@@ -818,20 +764,19 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
       ? '...'
       : isInstalling
       ? `${cachingProgress > 0 ? `${cachingProgress}%` : (updateAvailable ? 'Actualitzant' : 'Instal·lant')}`
-      : isOffline && isInstalled
-      ? 'Offline'
       : isOffline
       ? 'Offline'
       : isInstalled
       ? 'Instal·lada'
       : 'Instal·lar';
 
-    // ── Dropdown status pills ─────────────────────────────────────────────
+    // ── Dropdown status pills — colors independents del trigger ───────────
+    // wifi: blau si online, vermell si offline
     const wifiLabel = isOffline ? 'Sense connexió' : 'Amb connexió';
-    const wifiIcon = isOffline
-      ? <WifiOff size={15} />
-      : <Wifi size={15} />;
+    const wifiIcon = isOffline ? <WifiOff size={15} /> : <Wifi size={15} />;
+    const wifiBg   = isOffline ? 'bg-red-50 border-red-100 text-red-700'   : 'bg-blue-50 border-blue-100 text-blue-700';
 
+    // install: groc si instal·lant/offline+instalat, verd si online+instalat, gris si no instalat/checking
     const installLabel = isInstalling
       ? (cachingProgress >= 95
           ? 'Finalitzant...'
@@ -853,6 +798,14 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
     ) : (
       <Download size={15} />
     );
+
+    const installPillBg = isInstalling || (isOffline && isInstalled)
+      ? 'bg-yellow-50 border-yellow-100 text-yellow-700'
+      : isInstalled
+      ? 'bg-green-50 border-green-100 text-green-700'
+      : isChecking
+      ? 'bg-gray-100 border-gray-200 text-gray-500'
+      : 'bg-gray-50 border-gray-200 text-gray-500';
 
     // ── Dropdown action button ────────────────────────────────────────────
     const actionButton = isInstalled && !isInstalling ? (
@@ -907,10 +860,10 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
 
     return (
       <div ref={dropdownRef} className="relative">
-        {/* Trigger — subtle outlined pill, same rectangular shape as Login */}
+        {/* Trigger — fons lleuger del color semàntic, sense vora */}
         <button
           onClick={() => setShowDropdown(v => !v)}
-          className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors text-sm font-medium bg-transparent ${colors.triggerBorder} ${colors.triggerText} ${colors.triggerBg} ${isInstalling ? 'animate-pulse' : ''}`}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors text-sm font-medium ${triggerBg} ${isInstalling ? 'animate-pulse' : ''}`}
           aria-label="Estat de la instal·lació"
         >
           {triggerIcon}
@@ -927,11 +880,11 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
 
             {/* Status pills */}
             <div className="space-y-2 mb-3">
-              <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border ${colors.wifiBg} ${colors.wifiBorder} ${colors.wifiText}`}>
+              <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border ${wifiBg}`}>
                 {wifiIcon}
                 <span className="text-sm font-medium">{wifiLabel}</span>
               </div>
-              <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border ${colors.installBg} ${colors.installBorder} ${colors.installText} ${isInstalling ? 'animate-pulse' : ''}`}>
+              <div className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border ${installPillBg} ${isInstalling ? 'animate-pulse' : ''}`}>
                 {installIcon}
                 <span className="text-sm font-medium">{installLabel}</span>
               </div>
