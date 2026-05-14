@@ -8,7 +8,11 @@ type InstallStatus = 'unknown' | 'checking' | 'installed' | 'not-installed';
 // Cache name must match service worker
 const EXPECTED_CACHE_NAME = 'mots-correctes-cache-v4';
 
-export function OfflineButton() {
+interface OfflineButtonProps {
+  compact?: boolean;
+}
+
+export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
   // Use a more explicit status instead of boolean
   const [installStatus, setInstallStatus] = useState<InstallStatus>('unknown');
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -709,6 +713,162 @@ export function OfflineButton() {
     };
   }, [showUninstallConfirm]);
   
+  // Compact (header) render: icon-only button preserving same colors and functions
+  if (compact) {
+    const isChecking = installStatus === 'checking' || installStatus === 'unknown';
+
+    let trigger: JSX.Element;
+    if (isChecking) {
+      trigger = (
+        <button
+          disabled
+          className="flex items-center justify-center p-2 rounded-lg text-gray-400 cursor-not-allowed transition-colors"
+          title="Comprovant estat..."
+          aria-label="Comprovant estat de la instal·lació"
+        >
+          <RefreshCw size={16} className="animate-spin" />
+        </button>
+      );
+    } else if (isInstalling) {
+      trigger = (
+        <button
+          disabled
+          className="flex items-center justify-center p-2 rounded-lg text-yellow-600 bg-yellow-50 cursor-wait transition-colors animate-pulse"
+          title={`${updateAvailable ? 'Actualitzant' : 'Instal·lant'}... ${cachingProgress}%`}
+          aria-label="Instal·lant aplicació"
+        >
+          <RefreshCw size={16} className="animate-spin" />
+        </button>
+      );
+    } else if (isInstalled) {
+      trigger = (
+        <button
+          onClick={() => setShowUninstallConfirm(true)}
+          className="flex items-center justify-center p-2 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
+          title="Aplicació instal·lada — Toca per desinstal·lar"
+          aria-label="Aplicació instal·lada"
+        >
+          <Check size={16} />
+        </button>
+      );
+    } else if (isOffline) {
+      trigger = (
+        <button
+          disabled
+          className="flex items-center justify-center p-2 rounded-lg text-red-500 cursor-not-allowed transition-colors"
+          title="Sense connexió — No es pot instal·lar"
+          aria-label="Sense connexió"
+        >
+          <WifiOff size={16} />
+        </button>
+      );
+    } else if (updateAvailable) {
+      trigger = (
+        <button
+          onClick={installServiceWorker}
+          className="flex items-center justify-center p-2 rounded-lg text-yellow-600 hover:bg-yellow-50 transition-colors"
+          title="Actualització disponible"
+          aria-label="Actualització disponible"
+        >
+          <CircleAlert size={16} className="animate-pulse" />
+        </button>
+      );
+    } else {
+      trigger = (
+        <button
+          onClick={installServiceWorker}
+          className="flex items-center justify-center p-2 rounded-lg text-blue-600 hover:bg-blue-50 transition-colors"
+          title="Instal·lar aplicació"
+          aria-label="Instal·lar aplicació"
+        >
+          <Download size={16} />
+        </button>
+      );
+    }
+
+    return (
+      <>
+        {trigger}
+        {installationError && (
+          <span className="sr-only">{installationError}</span>
+        )}
+
+        {/* Uninstall Confirmation Modal (shared) */}
+        {showUninstallConfirm && (
+          <div className={`modal-container bg-black bg-opacity-60 p-4 ${isExitingModal ? 'exiting' : ''}`}>
+            <div className={`modal-content bg-white rounded-lg p-6 ${isMobile ? 'max-w-md' : 'max-w-xs'} w-full shadow-xl ${isExitingModal ? 'exiting' : ''}`}>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-red-800">Confirmar desinstal·lació</h3>
+                <button
+                  onClick={handleCloseModal}
+                  className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                  aria-label="Tancar"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
+                  <p className="font-medium">Atenció!</p>
+                  <p className="text-sm">Aquesta acció eliminarà el mode offline i no podràs utilitzar l'aplicació sense connexió a internet.</p>
+                </div>
+
+                {isMobile ? (
+                  <div className="relative h-12 bg-gray-100 rounded-lg mt-3 overflow-hidden">
+                    {!swipeComplete ? (
+                      <SwipeToConfirm
+                        onSwipeProgress={setSwipeProgress}
+                        onSwipeComplete={handleSwipeComplete}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center bg-red-500 text-white">
+                        <Check size={20} className="mr-2" />
+                        <span className="font-medium">Confirmat</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center my-4" />
+                )}
+              </div>
+
+              <div className="flex gap-3 justify-between">
+                <button
+                  onClick={handleCloseModal}
+                  className="py-2 px-5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors focus:ring-2 focus:ring-gray-300 focus:outline-none"
+                >
+                  Cancel·lar
+                </button>
+                <button
+                  onClick={uninstallOfflineMode}
+                  disabled={!swipeComplete}
+                  className={`py-2 px-5 rounded-lg transition-all duration-300 flex items-center gap-2 ${
+                    swipeComplete
+                      ? 'bg-red-600 hover:bg-red-700 text-white shadow-md focus:ring-2 focus:ring-red-300 focus:outline-none'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {!isMobile && !swipeComplete ? (
+                    <>
+                      <Timer size={16} className="animate-pulse" />
+                      <span>Espera ({countdownValue}s)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={16} />
+                      <span>Confirmar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="w-full max-w-4xl mx-auto mt-8">
       <div className="flex flex-col items-center">

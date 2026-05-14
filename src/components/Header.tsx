@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { IOSToggle } from './IOSToggle';
+import { OfflineButton } from './OfflineButton';
 import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload, Radio } from 'lucide-react';
 import { cloudSync } from '../lib/cloudSync';
 import { downloadCSI, readCSIFile, mergeCSIData, CSIData } from '../lib/csiExport';
@@ -483,7 +484,10 @@ export function Header({ onProgressUpdate }: HeaderProps) {
         <div className="px-4 py-3 flex items-center justify-between">
           <h1 className="text-lg md:text-xl font-bold text-red-600">Català CSI</h1>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            {/* Install app button — always visible, minimalist */}
+            <OfflineButton compact />
+
             {/* --- NOT LOGGED IN: Import/Export + Login button --- */}
             {!currentUser && (
               <>
