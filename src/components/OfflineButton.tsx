@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowRight, Check, CircleAlert, Download, RefreshCw, Timer, Trash2, Wifi, WifiOff } from 'lucide-react';
 import { SwipeToConfirm } from './SwipeToConfirm';
@@ -30,25 +30,7 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isExitingDropdown, setIsExitingDropdown] = useState(false);
-  const [dropdownShift, setDropdownShift] = useState(0);
-  const dropdownWrapperRef = useRef<HTMLDivElement | null>(null);
-
-  // Dynamic edge-collision: wrapper stays at right-0, but gets translateX'd to avoid clipping
-  useLayoutEffect(() => {
-    if (!showDropdown) { setDropdownShift(0); return; }
-    const adjust = () => {
-      const el = dropdownWrapperRef.current;
-      if (!el) return;
-      el.style.transform = 'none';
-      const rect = el.getBoundingClientRect();
-      const margin = 8;
-      if (rect.left < margin) setDropdownShift(margin - rect.left);
-      else setDropdownShift(0);
-    };
-    const frame = requestAnimationFrame(adjust);
-    window.addEventListener('resize', adjust);
-    return () => { cancelAnimationFrame(frame); window.removeEventListener('resize', adjust); };
-  }, [showDropdown]);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -906,12 +888,7 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
         {/* Dropdown — stop propagation on inner clicks so it stays open */}
         {(showDropdown || isExitingDropdown) && (
           <div
-            ref={dropdownWrapperRef}
-            className="absolute top-full right-0 mt-2 z-50"
-            style={dropdownShift ? { transform: `translateX(${dropdownShift}px)` } : undefined}
-          >
-          <div
-            className={`dropdown-panel w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4${isExitingDropdown ? ' exiting' : ''}`}
+            className={`dropdown-panel absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingDropdown ? ' exiting' : ''}`}
             onClick={e => e.stopPropagation()}
           >
             <p className="text-sm font-semibold text-gray-800 mb-3">Aplicació</p>
@@ -934,7 +911,6 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
             {installationError && (
               <p className="text-xs text-red-500 mt-2 text-center">{installationError}</p>
             )}
-          </div>
           </div>
         )}
 
