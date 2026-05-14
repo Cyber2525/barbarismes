@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { IOSToggle } from './IOSToggle';
-import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload, Radio, Wifi, WifiOff, Trash2 } from 'lucide-react';
+import { LogIn, LogOut, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Download, Upload, Radio } from 'lucide-react';
 import { cloudSync } from '../lib/cloudSync';
 import { downloadCSI, readCSIFile, mergeCSIData, CSIData } from '../lib/csiExport';
 import { dispatchProgressUpdate } from '../utils/doneItems';
@@ -50,9 +50,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [downloadedBackup, setDownloadedBackup] = useState(false);
-
-  // Uninstall state
-  const [showUninstallConfirm, setShowUninstallConfirm] = useState(false);
 
   // Modal exit animation states
   const [isExitingImport, setIsExitingImport] = useState(false);
@@ -480,37 +477,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
     }
   };
 
-  const handleUninstall = async () => {
-    // Clear all local data
-    localStorage.clear();
-    sessionStorage.clear();
-
-    // Unregister service workers
-    if ('serviceWorker' in navigator) {
-      try {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (const registration of registrations) {
-          await registration.unregister();
-        }
-      } catch (error) {
-        console.error('Error unregistering service workers:', error);
-      }
-    }
-
-    // Clear app cache
-    if ('caches' in window) {
-      try {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
-      } catch (error) {
-        console.error('Error clearing caches:', error);
-      }
-    }
-
-    // Reload page
-    window.location.reload();
-  };
-
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-40 bg-white/70 backdrop-blur-md border-b border-gray-200/60">
@@ -518,30 +484,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
           <h1 className="text-lg md:text-xl font-bold text-red-600">Català CSI</h1>
 
           <div className="flex items-center gap-3">
-            {/* --- LOGGED IN: Connection status + Uninstall --- */}
-            {currentUser && (
-              <>
-                {/* Connection status */}
-                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium ${
-                  isOnline 
-                    ? 'bg-green-100 text-green-700' 
-                    : 'bg-yellow-100 text-yellow-700'
-                }`}>
-                  {isOnline ? <Wifi size={14} /> : <WifiOff size={14} />}
-                  <span className="text-xs">{isOnline ? 'Online' : 'Offline'}</span>
-                </div>
-
-                {/* Uninstall button */}
-                <button
-                  onClick={() => setShowUninstallConfirm(true)}
-                  className="flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-                  title="Desinstalar aplicació"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </>
-            )}
-
             {/* --- NOT LOGGED IN: Import/Export + Login button --- */}
             {!currentUser && (
               <>
@@ -812,33 +754,6 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                 onClick={closeLoginDialog}
                 disabled={isSyncing}
                 className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 disabled:opacity-50 text-sm transition-colors"
-              >
-                Cancel·lar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Uninstall confirmation dialog */}
-      {showUninstallConfirm && (
-        <div className="modal-container bg-black/50">
-          <div className="modal-content bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
-            <h3 className="text-base font-semibold text-red-600 mb-2">Desinstalar aplicació</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Això eliminarà totes les dades locals i esborrarà la configuració de l&apos;aplicació offline. Els teus dades al núvol es mantindran intactes.
-            </p>
-            <div className="space-y-3">
-              <button
-                onClick={handleUninstall}
-                className="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 text-sm transition-colors"
-              >
-                <Trash2 size={15} />
-                Desinstalar
-              </button>
-              <button
-                onClick={() => setShowUninstallConfirm(false)}
-                className="w-full bg-gray-100 text-gray-600 py-2.5 rounded-lg hover:bg-gray-200 text-sm transition-colors"
               >
                 Cancel·lar
               </button>
