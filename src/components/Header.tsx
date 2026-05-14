@@ -38,6 +38,46 @@ export function Header({ onProgressUpdate }: HeaderProps) {
   const [isExitingUserMenu, setIsExitingUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
+  // Dynamic edge detection offsets for dropdown panels
+  const [loginPanelOffsetX, setLoginPanelOffsetX] = useState(0);
+  const [userMenuPanelOffsetX, setUserMenuPanelOffsetX] = useState(0);
+  const loginPanelRef = useRef<HTMLDivElement>(null);
+  const userMenuPanelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showLoginForm) { setLoginPanelOffsetX(0); return; }
+    const adjust = () => {
+      const el = loginPanelRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const margin = 8;
+      let delta = 0;
+      if (rect.left < margin) delta = margin - rect.left;
+      else if (rect.right > window.innerWidth - margin) delta = window.innerWidth - margin - rect.right;
+      if (delta !== 0) setLoginPanelOffsetX(prev => prev + delta);
+    };
+    adjust();
+    window.addEventListener('resize', adjust);
+    return () => window.removeEventListener('resize', adjust);
+  }, [showLoginForm]);
+
+  useEffect(() => {
+    if (!showUserMenu) { setUserMenuPanelOffsetX(0); return; }
+    const adjust = () => {
+      const el = userMenuPanelRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const margin = 8;
+      let delta = 0;
+      if (rect.left < margin) delta = margin - rect.left;
+      else if (rect.right > window.innerWidth - margin) delta = window.innerWidth - margin - rect.right;
+      if (delta !== 0) setUserMenuPanelOffsetX(prev => prev + delta);
+    };
+    adjust();
+    window.addEventListener('resize', adjust);
+    return () => window.removeEventListener('resize', adjust);
+  }, [showUserMenu]);
+
   // Import state
   const [pendingImport, setPendingImport] = useState<CSIData | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -517,7 +557,11 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                   </button>
 
                   {(showLoginForm || isExitingLoginForm) && (
-                    <div className={`dropdown-panel absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingLoginForm ? ' exiting' : ''}`}>
+                    <div
+                      ref={loginPanelRef}
+                      className={`dropdown-panel absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingLoginForm ? ' exiting' : ''}`}
+                      style={loginPanelOffsetX ? { marginLeft: `${loginPanelOffsetX}px` } : undefined}
+                    >
                       <p className="text-sm font-semibold text-gray-800 mb-3">Iniciar sessió</p>
                       <div className="space-y-3">
                         <div>
@@ -603,7 +647,11 @@ export function Header({ onProgressUpdate }: HeaderProps) {
                   </button>
 
                   {(showUserMenu || isExitingUserMenu) && (
-                    <div className={`dropdown-panel absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingUserMenu ? ' exiting' : ''}`}>
+                    <div
+                      ref={userMenuPanelRef}
+                      className={`dropdown-panel absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingUserMenu ? ' exiting' : ''}`}
+                      style={userMenuPanelOffsetX ? { marginLeft: `${userMenuPanelOffsetX}px` } : undefined}
+                    >
                       <p className="text-sm font-semibold text-gray-800 mb-3">{currentUser}</p>
                       <div className="space-y-1">
                         {/* Live sync row — left zone: sync now / right zone: toggle */}

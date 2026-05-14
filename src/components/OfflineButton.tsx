@@ -30,7 +30,30 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [isExitingDropdown, setIsExitingDropdown] = useState(false);
+  const [dropdownOffsetX, setDropdownOffsetX] = useState(0);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+
+  // Dynamic edge detection: push the dropdown inward only if it overflows the viewport
+  useEffect(() => {
+    if (!showDropdown) {
+      setDropdownOffsetX(0);
+      return;
+    }
+    const adjust = () => {
+      const el = dropdownRef.current;
+      if (!el) return;
+      // Measure relative to current offset to compute the correction
+      const rect = el.getBoundingClientRect();
+      const margin = 8;
+      let delta = 0;
+      if (rect.left < margin) delta = margin - rect.left;
+      else if (rect.right > window.innerWidth - margin) delta = window.innerWidth - margin - rect.right;
+      if (delta !== 0) setDropdownOffsetX(prev => prev + delta);
+    };
+    adjust();
+    window.addEventListener('resize', adjust);
+    return () => window.removeEventListener('resize', adjust);
+  }, [showDropdown]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -888,7 +911,8 @@ export function OfflineButton({ compact = false }: OfflineButtonProps = {}) {
         {/* Dropdown — stop propagation on inner clicks so it stays open */}
         {(showDropdown || isExitingDropdown) && (
           <div
-            className={`dropdown-panel absolute top-full left-0 sm:left-auto sm:right-0 mt-2 w-72 max-w-[calc(100vw-1rem)] bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingDropdown ? ' exiting' : ''}`}
+            className={`dropdown-panel absolute top-full right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50${isExitingDropdown ? ' exiting' : ''}`}
+            style={dropdownOffsetX ? { marginLeft: `${dropdownOffsetX}px` } : undefined}
             onClick={e => e.stopPropagation()}
           >
             <p className="text-sm font-semibold text-gray-800 mb-3">Aplicació</p>
