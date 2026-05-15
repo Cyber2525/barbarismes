@@ -12,6 +12,7 @@ import { StudySheet } from './components/StudySheet';
 import { DialectStudySheet } from './components/DialectStudySheet';
 import { DialectQuiz } from './components/DialectQuiz';
 import { OfflineButton } from './components/OfflineButton';
+import { DataSyncPanel } from './components/DataSyncPanel';
 import { BookOpen, Globe, Languages, Menu, Pencil, X } from 'lucide-react';
 
 // Default quiz size
@@ -395,6 +396,7 @@ export function App() {
               )}
             </>
           )}
+          <DataSyncPanel />
         </main>
 
         <footer className="text-center mt-8 md:mt-12 flex flex-col items-center">
